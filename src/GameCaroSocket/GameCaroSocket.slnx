@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="CaroGame.Application/CaroGame.Application.csproj" />
+  <Project Path="CaroGame.Domain/CaroGame.Domain.csproj" />
+  <Project Path="CaroGame.Infrastructure/CaroGame.Infrastructure.csproj" />
+  <Project Path="CaroGame.Server/CaroGame.Server.csproj" />
+  <Project Path="GameCaroSocket.Client/GameCaroSocket.Client.csproj" />
+</Solution>
