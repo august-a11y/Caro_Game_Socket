@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="SqlServer\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaroGame.Application\CaroGame.Application.csproj" />
+  </ItemGroup>
+
 </Project>

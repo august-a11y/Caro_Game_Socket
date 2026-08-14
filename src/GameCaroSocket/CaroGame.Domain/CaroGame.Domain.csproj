@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Enum\WinReason.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Enum\WinReason.cs" />
+  </ItemGroup>
+
 </Project>

@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CaroGame.Domain\CaroGame.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

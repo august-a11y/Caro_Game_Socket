@@ -1,0 +1,168 @@
+﻿using CaroGame.Domain.Enum;
+using CaroGame.Domain.ValueObjects;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace CaroGame.Domain.Entities
+{
+    public sealed class Room
+    {
+        private readonly List<Move> _moveHistory = new();
+        private readonly HashSet<Guid> _spectators = new();
+        private readonly Dictionary<Guid, DisconnectInfo> _disconnected = new();
+
+        public Guid RoomId { get; }
+
+        public PlayerSlot PlayerA { get; }
+        public PlayerSlot PlayerB { get; }
+
+        public Board Board { get; }
+
+        public Guid CurrentTurn { get; private set; }
+
+        public RoomStatus Status { get; private set; }
+
+        public IReadOnlyCollection<Move> MoveHistory => _moveHistory;
+
+        public IReadOnlyCollection<Guid> Spectators => _spectators;
+
+        public IReadOnlyDictionary<Guid, DisconnectInfo> Disconnected =>
+            _disconnected;
+
+        public int TurnDurationSec { get; }
+
+        public DateTime TurnDeadline { get; private set; }
+
+        public DateTime CreatedAt { get; }
+
+        public Room(
+            PlayerSlot playerA,
+            PlayerSlot playerB,
+            int boardSize = 15,
+            int turnDurationSec = 30)
+        {
+            RoomId = Guid.NewGuid();
+
+            PlayerA = playerA;
+            PlayerB = playerB;
+
+            Board = new Board(boardSize);
+
+            CurrentTurn = playerA.PlayerId;
+
+            Status = RoomStatus.Waiting;
+
+            TurnDurationSec = turnDurationSec;
+
+            CreatedAt = DateTime.UtcNow;
+
+            TurnDeadline = CreatedAt.AddSeconds(turnDurationSec);
+        }
+
+        public void ApplyMove(Guid userId, Position position)
+        {
+            if (GetRole(userId) != Role.Player)
+                throw new InvalidOperationException(
+                    "Only players can make moves.");
+
+            if (CurrentTurn != userId)
+                throw new InvalidOperationException(
+                    "It is not your turn.");
+
+            if (!Board.IsInBounds(position))
+                throw new InvalidOperationException(
+                    "Position is outside the board.");
+
+            if (Board.Get(position) is not null)
+                throw new InvalidOperationException(
+                    "Position is already occupied.");
+
+            var symbol = GetPlayerSymbol(userId);
+
+            Board.Set(position, symbol);
+
+            _moveHistory.Add(
+                new Move(
+                    _moveHistory.Count + 1,
+                    userId,
+                    position,
+                    symbol,
+                    DateTime.UtcNow));
+
+            CurrentTurn = userId == PlayerA.PlayerId
+                ? PlayerB.PlayerId
+                : PlayerA.PlayerId;
+
+            TurnDeadline = DateTime.UtcNow.AddSeconds(TurnDurationSec);
+        }
+
+        public MatchResultType CheckWinCondition()
+        {
+            if (_moveHistory.Count == 0)
+                return MatchResultType.Continue;
+
+            // TODO:
+            // Scan around the latest move.
+
+            return MatchResultType.Continue;
+        }
+
+        public Role GetRole(Guid userId)
+        {
+            if (userId == PlayerA.PlayerId ||
+                userId == PlayerB.PlayerId)
+            {
+                return Role.Player;
+            }
+
+            if (_spectators.Contains(userId))
+                return Role.Spectator;
+
+            return Role.None;
+        }
+
+        public void AddSpectator(Guid userId)
+        {
+            if (GetRole(userId) == Role.None)
+                _spectators.Add(userId);
+        }
+
+        public void RemoveSpectator(Guid userId)
+        {
+            _spectators.Remove(userId);
+        }
+
+        public void MarkDisconnected(
+            Guid userId,
+            int gracePeriodSeconds)
+        {
+            var disconnectedAt = DateTime.UtcNow;
+
+            var gracePeriodEndsAt =
+                disconnectedAt.AddSeconds(gracePeriodSeconds);
+
+            _disconnected[userId] = new DisconnectInfo(
+                userId,
+                disconnectedAt,
+                gracePeriodEndsAt);
+        }
+
+        public void MarkReconnected(Guid userId)
+        {
+            _disconnected.Remove(userId);
+        }
+
+        private Symbol GetPlayerSymbol(Guid userId)
+        {
+            if (userId == PlayerA.PlayerId)
+                return PlayerA.Symbol;
+
+            if (userId == PlayerB.PlayerId)
+                return PlayerB.Symbol;
+
+            throw new InvalidOperationException(
+                "User is not a player in this room.");
+        }
+    }
+}
