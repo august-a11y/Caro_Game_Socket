@@ -70,17 +70,9 @@ namespace CaroGame.Domain.Entities
                 throw new InvalidOperationException(
                     "It is not your turn.");
 
-            if (!Board.IsInBounds(position))
-                throw new InvalidOperationException(
-                    "Position is outside the board.");
-
-            if (Board.Get(position) is not null)
-                throw new InvalidOperationException(
-                    "Position is already occupied.");
-
             var symbol = GetPlayerSymbol(userId);
 
-            Board.Set(position, symbol);
+            Board.PlaceSymbol(position, symbol);
 
             _moveHistory.Add(
                 new Move(

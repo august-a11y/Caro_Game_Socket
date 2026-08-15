@@ -20,24 +20,17 @@ namespace CaroGame.Domain.Entities
             Size = size;
             _cells = new Symbol?[size, size];
         }
-
-        public Symbol? Get(Position position)
+        public void PlaceSymbol(Position position, Symbol symbol)
         {
             if (!IsInBounds(position))
                 throw new ArgumentOutOfRangeException(nameof(position));
-
-            return _cells[position.Y, position.X];
-        }
-
-        public void Set(Position position, Symbol symbol)
-        {
-            if (!IsInBounds(position))
-                throw new ArgumentOutOfRangeException(nameof(position));
-
+            if (_cells[position.Y, position.X] is not null)
+                throw new InvalidOperationException("Cell is already occupied.");
             _cells[position.Y, position.X] = symbol;
-        }
+        }   
+        
 
-        public bool IsInBounds(Position position)
+        private bool IsInBounds(Position position)
         {
             return position.X >= 0 &&
                    position.X < Size &&
