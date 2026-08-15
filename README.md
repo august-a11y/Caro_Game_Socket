@@ -1,8 +1,18 @@
-# 🎮 Caro Online Multiplayer (.NET Socket)
+# 🎮 UDM_16 — Game Caro trực tuyến
 
 Một dự án game Cờ Caro trực tuyến được xây dựng dựa trên kiến trúc Client-Server sử dụng Socket trong .NET. Hệ thống hỗ trợ đa luồng cho phép nhiều trận đấu diễn ra đồng thời, tích hợp các tính năng thách đấu, quản lý thời gian thực, hệ thống khán giả (spectator) và khả năng phục hồi kết nối.
 
 ---
+## 👥 Thành viên nhóm (Group 03)
+
+| STT | Họ và Tên | 
+| :---: | :--- | 
+| 1 |  Lê Xuân Vỹ (Leader)| 
+| 2 | Nguyễn Ngọc Minh Tuấn | 
+| 3 | Trần Ngọc Thái An | 
+| 4 | Lê Minh Tân | 
+| 5 | Huỳnh Thành Phát | 
+| 6 | Nguyễn Trung Kiên |
 
 ## ✨ Tính năng nổi bật
 
@@ -45,4 +55,8 @@ Solution `GameCaroSocket.slnx` được phân chia rõ ràng theo nguyên tắc 
 *   **`GameCaroSocket.Client`**: Ứng dụng phía người dùng. Đảm nhận việc hiển thị giao diện UI, gửi yêu cầu lên Server và cập nhật trạng thái bàn cờ theo thời gian thực.
 
 ---
+## ⚙️ Yêu cầu hệ thống & Hướng dẫn cài đặt
 
+> 🚧 **Đang cập nhật...**
+> 
+> Dự án hiện vẫn đang trong giai đoạn phát triển và hoàn thiện. Các thông tin chi tiết về yêu cầu môi trường, cấu hình hệ thống cũng như hướng dẫn từng bước để khởi chạy Server và Client sẽ được nhóm cập nhật đầy đủ tại đây ngay sau khi dự án hoàn thành.
