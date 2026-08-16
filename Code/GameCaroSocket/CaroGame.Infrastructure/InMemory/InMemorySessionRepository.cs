@@ -8,9 +8,13 @@ namespace CaroGame.Infrastructure.InMemory
 {
     public class InMemorySessionRepository : ISessionRepository
     {
+        private readonly Dictionary<Guid, Session> _sessions = new();
+
         public Task AddAsync(Session session)
         {
-            throw new NotImplementedException();
+            _sessions[session.SessionId] = session;
+
+            return Task.CompletedTask;
         }
 
         public Task<bool> ExistsAsync(Guid playerId)
@@ -20,12 +24,17 @@ namespace CaroGame.Infrastructure.InMemory
 
         public Task<Session?> GetByTokenAsync(Guid sessionId)
         {
-            throw new NotImplementedException();
+            _sessions.TryGetValue(sessionId, out var session);
+
+            return Task.FromResult(session);
         }
 
         public Task<Session?> GetByUserIdAsync(Guid playerId)
         {
-            throw new NotImplementedException();
+            var session = _sessions.Values
+                .FirstOrDefault(s => s.PlayerId == playerId);
+
+            return Task.FromResult(session);
         }
 
         public Task RemoveAsync(Guid userId)
