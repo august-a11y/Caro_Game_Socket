@@ -56,12 +56,19 @@ namespace CaroGame.Domain.Entities
             TurnDurationSec = turnDurationSec;
 
             CreatedAt = DateTime.UtcNow;
-
-            TurnDeadline = CreatedAt.AddSeconds(turnDurationSec);
+            // Do not start the turn deadline until the first move is made.
+            TurnDeadline = DateTime.MinValue;
         }
 
         public void ApplyMove(Guid userId, Position position)
         {
+            // Check match status before allowing any move
+            if (Status == RoomStatus.Finished)
+                throw new InvalidOperationException("Match already finished.");
+
+            if (Status != RoomStatus.Waiting && Status != RoomStatus.Playing)
+                throw new InvalidOperationException("Invalid room status for playing.");
+
             if (GetRole(userId) != Role.Player)
                 throw new InvalidOperationException(
                     "Only players can make moves.");
@@ -81,15 +88,23 @@ namespace CaroGame.Domain.Entities
                     position,
                     symbol,
                     DateTime.UtcNow));
-            // Set room status to Playing when the first move is applied
+            // Transition Waiting -> Playing when first move is applied and start turn deadline.
             if (Status == RoomStatus.Waiting)
+            {
                 Status = RoomStatus.Playing;
-
-            CurrentTurn = userId == PlayerA.PlayerId
-                ? PlayerB.PlayerId
-                : PlayerA.PlayerId;
-
-            TurnDeadline = DateTime.UtcNow.AddSeconds(TurnDurationSec);
+                // After placing the first move, the opponent becomes current turn and the deadline starts now.
+                CurrentTurn = userId == PlayerA.PlayerId
+                    ? PlayerB.PlayerId
+                    : PlayerA.PlayerId;
+                TurnDeadline = DateTime.UtcNow.AddSeconds(TurnDurationSec);
+            }
+            else
+            {
+                CurrentTurn = userId == PlayerA.PlayerId
+                    ? PlayerB.PlayerId
+                    : PlayerA.PlayerId;
+                TurnDeadline = DateTime.UtcNow.AddSeconds(TurnDurationSec);
+            }
         }
 
         public MatchResultType CheckWinCondition()
@@ -156,8 +171,14 @@ namespace CaroGame.Domain.Entities
             return MatchResultType.Continue;
         }
 
+        public MatchResultType? Result { get; private set; }
+
         public void EndMatch(MatchResultType result)
         {
+            if (Status == RoomStatus.Finished)
+                throw new InvalidOperationException("Match already finished.");
+
+            Result = result;
             Status = RoomStatus.Finished;
             // Additional end-match bookkeeping could be added here
         }

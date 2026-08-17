@@ -23,8 +23,16 @@ namespace CaroGame.Application.UseCases.GamePlay
             if (room is null)
                 return;
 
+            // Only handle timeouts for playing rooms
+            if (room.Status != RoomStatus.Playing)
+                return;
+
             // Only proceed if it is indeed the player's turn
             if (room.CurrentTurn != playerId)
+                return;
+
+            // Ensure the deadline has been reached
+            if (room.TurnDeadline == DateTime.MinValue || DateTime.UtcNow < room.TurnDeadline)
                 return;
 
             // Opponent wins by timeout
