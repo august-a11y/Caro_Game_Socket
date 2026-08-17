@@ -12,12 +12,17 @@ namespace CaroGame.Infrastructure.InMemory
     {
         private readonly ConcurrentDictionary<Guid, Session> _sessions = new ConcurrentDictionary<Guid, Session>();
 
-        // AddAsync, GetByTokenAsync and GetByUserIdAsync are intentionally not implemented here
-        // as per task instructions. Other code in the solution may provide those.
-
         public Task AddAsync(Session session)
         {
-            throw new NotImplementedException();
+            if (session == null)
+                throw new ArgumentNullException(nameof(session));
+
+            // Use PlayerId as the dictionary key. Do not allow duplicate sessions for the same player.
+            var added = _sessions.TryAdd(session.PlayerId, session);
+            if (!added)
+                throw new InvalidOperationException("A session for this player already exists.");
+
+            return Task.CompletedTask;
         }
 
         public Task<bool> ExistsAsync(Guid playerId)
@@ -28,12 +33,24 @@ namespace CaroGame.Infrastructure.InMemory
 
         public Task<Session?> GetByTokenAsync(Guid sessionId)
         {
-            throw new NotImplementedException();
+            // The repository stores sessions keyed by PlayerId. To find by session token/id,
+            // search the values for a matching SessionId. This assumes Session.SessionId is the token.
+            foreach (var kv in _sessions)
+            {
+                var s = kv.Value;
+                if (s.SessionId == sessionId)
+                    return Task.FromResult<Session?>(s);
+            }
+
+            return Task.FromResult<Session?>(null);
         }
 
         public Task<Session?> GetByUserIdAsync(Guid playerId)
         {
-            throw new NotImplementedException();
+            if (_sessions.TryGetValue(playerId, out var session))
+                return Task.FromResult<Session?>(session);
+
+            return Task.FromResult<Session?>(null);
         }
 
         public Task RemoveAsync(Guid userId)
