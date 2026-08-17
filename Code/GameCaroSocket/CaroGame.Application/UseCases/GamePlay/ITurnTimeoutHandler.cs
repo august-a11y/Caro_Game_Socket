@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace CaroGame.Application.UseCases.GamePlay
 {
     public interface ITurnTimeoutHandler
@@ -5,4 +7,3 @@ namespace CaroGame.Application.UseCases.GamePlay
         Task HandleTurnTimeoutAsync(Guid roomId, Guid playerId, CancellationToken cancellationToken);
     }
 }
-
