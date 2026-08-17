@@ -7,9 +7,9 @@ namespace CaroGame.Application.Interfaces.Repositories
 {
     public interface ISessionRepository
     {
-        Task<Session?> GetByUserIdAsync(Guid playerId);
+        Task<Session?> GetByPlayerIdAsync(Guid playerId);
 
-        Task<Session?> GetByTokenAsync(Guid sessionId);
+        Task<Session?> GetByIdAsync(Guid sessionId);
 
         Task AddAsync(Session session);
 
