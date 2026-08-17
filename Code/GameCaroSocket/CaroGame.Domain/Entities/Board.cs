@@ -1,4 +1,4 @@
-﻿using CaroGame.Domain.Enum;
+using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -28,8 +28,12 @@ namespace CaroGame.Domain.Entities
                 throw new InvalidOperationException("Cell is already occupied.");
             _cells[position.Y, position.X] = symbol;
         }   
-        
-
+        public Symbol? GetSymbol(Position position)
+        {
+            if (!IsInBounds(position))
+                return null;
+            return _cells[position.Y, position.X];
+        }
         private bool IsInBounds(Position position)
         {
             return position.X >= 0 &&
