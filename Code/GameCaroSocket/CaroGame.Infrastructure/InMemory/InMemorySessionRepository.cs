@@ -54,13 +54,10 @@ namespace CaroGame.Infrastructure.InMemory
 
         public Task UpdateAsync(Session session)
         {
-            // Update only if an entry with the same SessionId already exists.
-            // Use TryGetValue + TryUpdate loop to avoid creating a new entry and keep thread-safety.
             while (true)
             {
                 if (!_sessions.TryGetValue(session.SessionId, out var existing))
                 {
-                    // no existing session with this SessionId - do not create
                     break;
                 }
 
@@ -68,8 +65,6 @@ namespace CaroGame.Infrastructure.InMemory
                 {
                     break;
                 }
-
-                // if TryUpdate failed, another thread modified the entry; retry
             }
 
             return Task.CompletedTask;
