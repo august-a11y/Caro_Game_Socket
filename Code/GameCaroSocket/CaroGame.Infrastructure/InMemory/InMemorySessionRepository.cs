@@ -48,7 +48,6 @@ namespace CaroGame.Infrastructure.InMemory
             {
                 _sessions.TryRemove(session.SessionId, out _);
             }
-
             return Task.CompletedTask;
         }
 
@@ -66,7 +65,6 @@ namespace CaroGame.Infrastructure.InMemory
                     break;
                 }
             }
-
             return Task.CompletedTask;
         }
     }
