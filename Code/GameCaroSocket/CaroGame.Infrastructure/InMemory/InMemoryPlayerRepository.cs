@@ -1,41 +1,62 @@
 ﻿using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Collections.Concurrent;
+using System.Linq;
 
 namespace CaroGame.Infrastructure.InMemory
 {
+   
     public class InMemoryPlayerRepository : IPlayerRepository
     {
+        private readonly ConcurrentDictionary<Guid, Player> _players = new();
+
         public Task AddAsync(Player player)
         {
-            throw new NotImplementedException();
+            ArgumentNullException.ThrowIfNull(player);
+
+            _players[player.PlayerId] = player;
+
+            return Task.CompletedTask;
         }
 
         public Task<bool> ExistsByNicknameAsync(string nickname)
         {
-            throw new NotImplementedException();
+            var exists = _players.Values.Any(p =>
+                string.Equals(p.Nickname, nickname, StringComparison.OrdinalIgnoreCase));
+
+            return Task.FromResult(exists);
         }
 
         public Task<Player?> GetByIdAsync(Guid playerId)
         {
-            throw new NotImplementedException();
+            _players.TryGetValue(playerId, out var player);
+
+            return Task.FromResult(player);
         }
 
         public Task<Player?> GetByNicknameAsync(string nickname)
         {
-            throw new NotImplementedException();
+            var player = _players.Values.FirstOrDefault(p =>
+                string.Equals(p.Nickname, nickname, StringComparison.OrdinalIgnoreCase));
+
+            return Task.FromResult(player);
         }
 
         public Task<IReadOnlyList<Player>> GetOnlinePlayersAsync()
         {
-            throw new NotImplementedException();
+            .
+            IReadOnlyList<Player> players = _players.Values.ToList();
+
+            return Task.FromResult(players);
         }
 
         public Task UpdateAsync(Player player)
         {
-            throw new NotImplementedException();
+            ArgumentNullException.ThrowIfNull(player);
+
+            _players[player.PlayerId] = player;
+
+            return Task.CompletedTask;
         }
     }
 }

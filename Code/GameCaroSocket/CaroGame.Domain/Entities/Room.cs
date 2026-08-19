@@ -94,10 +94,30 @@ namespace CaroGame.Domain.Entities
             if (_moveHistory.Count == 0)
                 return MatchResultType.Continue;
 
-            // TODO:
-            // Scan around the latest move.
+            var lastMove = _moveHistory[^1];
+
+            if (Board.HasFiveInARow(lastMove.Position, lastMove.Symbol))
+            {
+                return lastMove.PlayerId == PlayerA.PlayerId
+                    ? MatchResultType.PlayerAWin
+                    : MatchResultType.PlayerBWin;
+            }
+
+            if (Board.IsFull())
+                return MatchResultType.Draw;
 
             return MatchResultType.Continue;
+        }
+
+        public void MarkPlaying()
+        {
+            if (Status == RoomStatus.Waiting)
+                Status = RoomStatus.Playing;
+        }
+
+        public void Finish()
+        {
+            Status = RoomStatus.Finished;
         }
 
         public Role GetRole(Guid userId)

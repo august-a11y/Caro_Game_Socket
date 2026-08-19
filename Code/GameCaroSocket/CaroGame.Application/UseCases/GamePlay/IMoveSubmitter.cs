@@ -1,3 +1,4 @@
+using System.Threading;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.ValueObjects;
 
@@ -8,4 +9,3 @@ namespace CaroGame.Application.UseCases.GamePlay
         Task<Room> SubmitMoveAsync(Guid roomId, Guid playerId, Position position, CancellationToken cancellationToken);
     }
 }
-

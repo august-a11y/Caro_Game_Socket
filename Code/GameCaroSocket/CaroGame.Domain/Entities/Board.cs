@@ -51,5 +51,60 @@ namespace CaroGame.Domain.Entities
 
             return true;
         }
+
+        public Symbol? GetSymbolAt(Position position)
+        {
+            if (!IsInBounds(position))
+                throw new ArgumentOutOfRangeException(nameof(position));
+
+            return _cells[position.Y, position.X];
+        }
+
+        /// <summary>
+        /// Checks whether placing <paramref name="symbol"/> at <paramref name="lastMove"/>
+        /// completed a line of five or more in any direction (horizontal, vertical, or
+        /// either diagonal).
+        /// </summary>
+        public bool HasFiveInARow(Position lastMove, Symbol symbol)
+        {
+            if (!IsInBounds(lastMove))
+                throw new ArgumentOutOfRangeException(nameof(lastMove));
+
+            (int Dx, int Dy)[] directions =
+            {
+                (1, 0),
+                (0, 1),
+                (1, 1),
+                (1, -1),
+            };
+
+            foreach (var (dx, dy) in directions)
+            {
+                var count = 1;
+                count += CountAlongDirection(lastMove, dx, dy, symbol);
+                count += CountAlongDirection(lastMove, -dx, -dy, symbol);
+
+                if (count >= 5)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private int CountAlongDirection(Position start, int dx, int dy, Symbol symbol)
+        {
+            var count = 0;
+            var x = start.X + dx;
+            var y = start.Y + dy;
+
+            while (x >= 0 && x < Size && y >= 0 && y < Size && _cells[y, x] == symbol)
+            {
+                count++;
+                x += dx;
+                y += dy;
+            }
+
+            return count;
+        }
     }
 }
