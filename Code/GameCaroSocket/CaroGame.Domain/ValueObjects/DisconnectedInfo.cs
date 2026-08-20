@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CaroGame.Domain.Entities
+namespace CaroGame.Domain.ValueObjects
 {
     public sealed class DisconnectInfo
     {
