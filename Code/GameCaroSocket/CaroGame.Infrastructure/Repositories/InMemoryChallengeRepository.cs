@@ -39,6 +39,9 @@ namespace CaroGame.Infrastructure.Repositories
 
         public Task AddAsync(Challenge challenge)
         {
+            if (challenge == null)
+                throw new ArgumentNullException(nameof(challenge));
+
             _challenges[challenge.Id] = challenge;
             return Task.CompletedTask;
         }
@@ -52,13 +55,22 @@ namespace CaroGame.Infrastructure.Repositories
         public Task<IEnumerable<Challenge>> GetPendingChallengesForPlayerAsync(string playerId)
         {
             var pending = _challenges.Values
-                .Where(c => c.TargetPlayerId == playerId && c.Status == ChallengeStatus.Pending);
-            
-            return Task.FromResult(pending);
+                .Where(c => c.TargetPlayerId == playerId && c.Status == ChallengeStatus.Pending)
+                .ToList(); // Đã thêm .ToList() để thực thi LINQ ngay lập tức
+
+            return Task.FromResult<IEnumerable<Challenge>>(pending);
         }
 
         public Task UpdateAsync(Challenge challenge)
         {
+            if (challenge == null)
+                throw new ArgumentNullException(nameof(challenge));
+
+            if (!_challenges.ContainsKey(challenge.Id))
+            {
+                throw new KeyNotFoundException($"Challenge with ID '{challenge.Id}' was not found.");
+            }
+
             _challenges[challenge.Id] = challenge;
             return Task.CompletedTask;
         }
