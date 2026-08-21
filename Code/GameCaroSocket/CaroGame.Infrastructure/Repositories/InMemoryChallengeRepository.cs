@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CaroGame.Domain.Entities;
+using CaroGame.Domain.Enum;
 using CaroGame.Domain.Interfaces;
 
 namespace CaroGame.Infrastructure.Repositories
@@ -55,5 +56,3 @@ namespace CaroGame.Infrastructure.Repositories
         }
     }
 }
-
-*Lưu ý: Bạn có thể copy toàn bộ đoạn mã trên và dán đè vào khung biên tập file trên GitHub.*
