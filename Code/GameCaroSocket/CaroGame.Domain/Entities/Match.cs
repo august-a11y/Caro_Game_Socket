@@ -1,4 +1,4 @@
-﻿using CaroGame.Domain.Enum;
+using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
 
 namespace CaroGame.Domain.Entities
@@ -41,6 +41,53 @@ namespace CaroGame.Domain.Entities
         public void EndMatch(MatchResultType result)
         {
             matchResult = result;
+        }
+
+        public MatchResultType CheckWinCondition()
+        {
+            if (_moveHistory.Count == 0)
+                return MatchResultType.Continue;
+
+            var lastMove = _moveHistory[_moveHistory.Count - 1];
+            if (Check5InARow(lastMove.Position, lastMove.Symbol))
+                return MatchResultType.Win;
+
+            if (Board.IsFull())
+                return MatchResultType.Draw;
+
+            return MatchResultType.Continue;
+        }
+
+        private bool Check5InARow(Position pos, Symbol symbol)
+        {
+            var directions = new (int dx, int dy)[]
+            {
+                (1, 0),  // Ngang
+                (0, 1),  // Dọc
+                (1, 1),  // Chéo chính
+                (1, -1)  // Chéo phụ
+            };
+
+            foreach (var (dx, dy) in directions)
+            {
+                int count = 1;
+                // Duyệt chiều dương
+                for (int i = 1; i <= 4; i++)
+                {
+                    var checkPos = new Position(pos.X + dx * i, pos.Y + dy * i);
+                    if (Board.GetSymbol(checkPos) == symbol) count++;
+                    else break;
+                }
+                // Duyệt chiều âm
+                for (int i = 1; i <= 4; i++)
+                {
+                    var checkPos = new Position(pos.X - dx * i, pos.Y - dy * i);
+                    if (Board.GetSymbol(checkPos) == symbol) count++;
+                    else break;
+                }
+                if (count >= 5) return true;
+            }
+            return false;
         }
 
         private Symbol GetPlayerSymbol(Guid playerId)

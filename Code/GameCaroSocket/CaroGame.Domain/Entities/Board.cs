@@ -1,4 +1,4 @@
-﻿using CaroGame.Domain.Enum;
+using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
@@ -32,7 +32,13 @@ namespace CaroGame.Domain.Entities
 
             _cells[position.Y, position.X] = symbol;
             _placedCount++;
+        }   
 
+        public Symbol? GetSymbol(Position position)
+        {
+            if (!IsInBounds(position))
+                return null;
+            return _cells[position.Y, position.X];
         }
 
         private bool IsInBounds(Position position)
@@ -44,5 +50,4 @@ namespace CaroGame.Domain.Entities
         }
         public bool IsFull() => _placedCount >= _maxCapacity;
     }
-
 }
