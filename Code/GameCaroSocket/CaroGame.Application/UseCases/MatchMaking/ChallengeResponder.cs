@@ -22,8 +22,7 @@ public sealed class ChallengeResponder : IChallengeResponder
 
         var newMatch = new Match(challengerGuid, opponentGuid);
         await _matchRepository.AddAsync(newMatch, cancellationToken);
-
-        // Trả về ID nhận diện bàn chơi vừa tạo
+        
         return $"{challengerGuid}_{opponentGuid}";
     }
 }
