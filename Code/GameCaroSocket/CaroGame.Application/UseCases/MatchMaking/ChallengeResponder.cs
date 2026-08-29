@@ -17,9 +17,13 @@ public sealed class ChallengeResponder : IChallengeResponder
         if (!accept)
             return null;
 
-        var newMatch = new Match(challengerId, opponentId);
+        if (!Guid.TryParse(challengerId, out var challengerGuid) || !Guid.TryParse(opponentId, out var opponentGuid))
+            return null;
+
+        var newMatch = new Match(challengerGuid, opponentGuid);
         await _matchRepository.AddAsync(newMatch, cancellationToken);
 
-        return newMatch.Id;
+        // Trả về ID nhận diện bàn chơi vừa tạo
+        return $"{challengerGuid}_{opponentGuid}";
     }
 }
