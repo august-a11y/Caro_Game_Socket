@@ -16,11 +16,13 @@ public sealed class ChallengeSender : IChallengeSender
         if (string.Equals(challengerId, opponentId, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var opponent = await _playerRepository.GetByIdAsync(opponentId, cancellationToken);
+        if (!Guid.TryParse(opponentId, out var opponentGuid))
+            return false;
+
+        var opponent = await _playerRepository.GetByIdAsync(opponentGuid, cancellationToken);
         if (opponent == null || !opponent.IsOnline || opponent.IsInMatch)
             return false;
 
         return true;
     }
 }
-
