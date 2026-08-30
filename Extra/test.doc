@@ -1,1 +1,20 @@
+BÁO CÁO HOÀN THÀNH NHIỆM VỤ
+- Người thực hiện: Huỳnh Thành Phát
+- Nhánh làm việc (Branch): feature/session-usecases
+- Tiến độ: Đã hoàn thành 100% (Đã tạo Pull Request)
 
+1. Tóm tắt công việc đã thực hiện:
+Triển khai toàn bộ 6 Use Case thuộc module Quản lý Phiên kết nối (Session) của dự án Game Caro Socket. Công việc đảm bảo tuân thủ nghiêm ngặt nguyên lý Clean Architecture và Dependency Injection. Toàn bộ logic được tách biệt hoàn toàn khỏi Domain và Infrastructure, không gây đụng độ (conflict) với các tính năng khác của nhóm.
+
+2. Chi tiết các file và tính năng đã triển khai:
+- PlayerJoiner.cs: Triển khai logic khởi tạo Player và cấp phát Session mới khi có kết nối đầu vào, đồng bộ hóa xuống In-Memory Repository.
+- SessionHeartbreathHandler.cs: Xử lý tín hiệu ping (heartbeat) định kỳ từ Client để duy trì trạng thái online cho Session.
+- UdpEndpointRegistrar.cs: Bổ sung cơ chế đăng ký IP và Port UDP cho Session.
+- PlayerDisconnectHandler.cs: Triển khai logic bắt sự kiện ngắt kết nối. Hệ thống tự động truy xuất Room và kích hoạt bộ đếm ngược (Grace Period) thay vì xử thua ngay lập tức.
+- PlayerReconnector.cs: Khôi phục phiên làm việc (Session) khi Client kết nối lại thành công, đồng thời hủy bỏ bộ đếm ngược xử thua.
+- GracePeriodExpiryHandler.cs: Xử lý logic timeout. Nếu Client mất mạng vượt quá thời gian cho phép, hệ thống sẽ gọi hàm EndMatch để xử thắng cho đối thủ và kết thúc ván đấu an toàn.
+
+3. Đánh giá và kết quả:
+- Code đã được kiểm tra, không có lỗi cú pháp, biên dịch thành công.
+- Các module giao tiếp mượt mà với IRoomRepository và ISessionRepository.
+- Đã sẵn sàng để trưởng nhóm gộp (Merge) vào nhánh main.
