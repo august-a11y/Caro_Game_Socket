@@ -5,21 +5,21 @@ using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
-    public class UdpEndpointRegistrar : IUdpEndpointRegistrar
+    public class SessionHeartbreathHandler : ISessionHeartbreathHandler
     {
         private readonly ISessionRepository _sessionRepository;
 
-        public UdpEndpointRegistrar(ISessionRepository sessionRepository)
+        public SessionHeartbreathHandler(ISessionRepository sessionRepository)
         {
             _sessionRepository = sessionRepository;
         }
 
-        public async Task RegisterAsync(Guid playerId, string address, int port, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(Guid playerId, CancellationToken cancellationToken)
         {
             var session = await _sessionRepository.GetByPlayerIdAsync(playerId);
             if (session != null)
             {
-                session.SetUdpEndpoint(address, port);
+                session.UpdateHeartbeat();
                 await _sessionRepository.UpdateAsync(session);
             }
         }
