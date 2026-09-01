@@ -5,10 +5,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CaroGame.Application.UseCases.Spectator
 namespace CaroGame.Application.UseCases.Match
 {
-    public class SpectatorLeaver
     public class SpectatorLeaver : ILeaveSpectatorUseCase
     {
         private readonly IRoomRepository _roomRepository;
