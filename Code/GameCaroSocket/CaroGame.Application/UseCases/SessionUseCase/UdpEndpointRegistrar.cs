@@ -1,27 +1,7 @@
-using CaroGame.Application.Interfaces.Repositories;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
-    public class UdpEndpointRegistrar : IUdpEndpointRegistrar
+    public sealed class UdpEndpointRegistrar : IUdpEndpointRegistrar
     {
-        private readonly ISessionRepository _sessionRepository;
-
-        public UdpEndpointRegistrar(ISessionRepository sessionRepository)
-        {
-            _sessionRepository = sessionRepository;
-        }
-
-        public async Task RegisterAsync(Guid playerId, string address, int port, CancellationToken cancellationToken = default)
-        {
-            var session = await _sessionRepository.GetByPlayerIdAsync(playerId);
-            if (session != null)
-            {
-                session.SetUdpEndpoint(address, port);
-                await _sessionRepository.UpdateAsync(session);
-            }
-        }
     }
 }
+
