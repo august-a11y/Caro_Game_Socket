@@ -7,4 +7,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaroGame.Application\CaroGame.Application.csproj" />
+    <ProjectReference Include="..\CaroGame.Infrastructure\CaroGame.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

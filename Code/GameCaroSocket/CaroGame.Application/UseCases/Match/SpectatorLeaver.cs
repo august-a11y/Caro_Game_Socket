@@ -1,42 +1,38 @@
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace CaroGame.Application.UseCases.Match
+namespace CaroGame.Application.UseCases.Match;
+
+public sealed class SpectatorLeaver : ISpectatorLeaver
 {
-    public class SpectatorLeaver : ILeaveSpectatorUseCase
+    private readonly IRoomRepository _roomRepository;
+
+    public SpectatorLeaver(IRoomRepository roomRepository)
     {
-        private readonly IRoomRepository _roomRepository;
+        _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
+    }
 
-        public SpectatorLeaver(IRoomRepository roomRepository)
-        {
-            _roomRepository = roomRepository;
-        }
+    public async Task<Room> LeaveSpectator(
+        Guid roomId,
+        Guid playerId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
 
-        public async Task<Room> LeaveSpectator(Guid roomId, Guid playerId)
-        {
-            if (roomId == Guid.Empty)
-                throw new ArgumentException("roomId must not be empty", nameof(roomId));
+        if (roomId == Guid.Empty)
+            throw new ArgumentException("Room identifier must not be empty.", nameof(roomId));
+        if (playerId == Guid.Empty)
+            throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
 
-            if (playerId == Guid.Empty)
-                throw new ArgumentException("playerId must not be empty", nameof(playerId));
+        var room = await _roomRepository.GetByIdAsync(roomId)
+            ?? throw new KeyNotFoundException($"Room with ID '{roomId}' was not found.");
 
-            var room = await _roomRepository.GetByIdAsync(roomId);
+        cancellationToken.ThrowIfCancellationRequested();
 
-            if (room == null)
-                throw new KeyNotFoundException($"Room with ID '{roomId}' was not found.");
-
-            if (!room.Spectators.Contains(playerId))
-                throw new InvalidOperationException("Player is not a spectator in this room.");
-
-            room.RemoveSpectator(playerId);
-
-            await _roomRepository.UpdateAsync(room);
-
+        if (!room.RemoveSpectator(playerId))
             return room;
-        }
+
+        await _roomRepository.UpdateAsync(room);
+        return room;
     }
 }

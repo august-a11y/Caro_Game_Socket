@@ -1,44 +1,57 @@
-using System.Threading;
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Enum;
 
-namespace CaroGame.Application.UseCases.GamePlay
+namespace CaroGame.Application.UseCases.GamePlay;
+
+public sealed class TurnTimeoutHandler : ITurnTimeoutHandler
 {
-    public sealed class TurnTimeoutHandler : ITurnTimeoutHandler
+    private readonly IRoomRepository _roomRepository;
+    private readonly IMatchEnder _matchEnder;
+    private readonly TimeProvider _timeProvider;
+
+    public TurnTimeoutHandler(
+        IRoomRepository roomRepository,
+        IMatchEnder matchEnder,
+        TimeProvider timeProvider)
     {
-        private readonly IRoomRepository _roomRepository;
-        private readonly IMatchEnder _matchEnder;
+        _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
+        _matchEnder = matchEnder ?? throw new ArgumentNullException(nameof(matchEnder));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    }
 
-        public TurnTimeoutHandler(IRoomRepository roomRepository, IMatchEnder matchEnder)
-        {
-            _roomRepository = roomRepository;
-            _matchEnder = matchEnder;
-        }
+    public async Task HandleTurnTimeoutAsync(
+        Guid roomId,
+        Guid playerId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
 
-        public async Task HandleTurnTimeoutAsync(
-            Guid roomId,
-            Guid playerId,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        if (roomId == Guid.Empty)
+            throw new ArgumentException("Room identifier must not be empty.", nameof(roomId));
+        if (playerId == Guid.Empty)
+            throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
 
-            var room = await _roomRepository.GetByIdAsync(roomId);
-            if (room is null || room.CurrentMatch is null)
-                return;
+        var room = await _roomRepository.GetByIdAsync(roomId);
 
-            var turnManager = room.CurrentMatch.TurnManager;
+        cancellationToken.ThrowIfCancellationRequested();
 
-            if (turnManager.CurrentTurnPlayerId != playerId)
-                return;
+        if (room?.Status != RoomStatus.Playing || room.CurrentMatch is null)
+            return;
 
-            if (!turnManager.IsTimeUp(DateTime.UtcNow))
-                return;
+        var turn = room.CurrentMatch.TurnManager;
+        if (turn.IsPaused)
+            return;
 
-            var result = playerId == room.CurrentMatch.PlayerXId
-                ? MatchResultType.PlayerOWin
-                : MatchResultType.PlayerXWin;
+        if (turn.CurrentTurnPlayerId != playerId)
+            return;
 
-            await _matchEnder.EndMatchAsync(roomId, result, cancellationToken);
-        }
+        if (!turn.IsTimeUp(_timeProvider.GetUtcNow().UtcDateTime))
+            return;
+
+        var result = playerId == room.PlayerX.PlayerId
+            ? MatchResultType.PlayerOWin
+            : MatchResultType.PlayerXWin;
+
+        await _matchEnder.EndMatchAsync(room, result, cancellationToken);
     }
 }

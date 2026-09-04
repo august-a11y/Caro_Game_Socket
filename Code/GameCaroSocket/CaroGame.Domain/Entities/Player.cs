@@ -9,20 +9,27 @@ namespace CaroGame.Domain.Entities
     {
         public Guid PlayerId { get; }
         public string Nickname { get; private set; }
+        public PlayerStatus Status { get; set; } = PlayerStatus.Free;
 
         public PlayerStats Stats { get; }
 
         public Player(string nickname)
         {
+            if (string.IsNullOrWhiteSpace(nickname))
+                throw new ArgumentException("Nickname cannot be empty.", nameof(nickname));
+
             PlayerId = Guid.NewGuid();
-            Nickname = nickname;
+            Nickname = nickname.Trim();
 
             Stats = new PlayerStats();
         }
 
         public void ChangeNickname(string nickname)
         {
-            Nickname = nickname;
+            if (string.IsNullOrWhiteSpace(nickname))
+                throw new ArgumentException("Nickname cannot be empty.", nameof(nickname));
+
+            Nickname = nickname.Trim();
         }
     }
     public sealed class PlayerStats

@@ -21,6 +21,11 @@ namespace CaroGame.Domain.Entities
             Symbol symbol,
             DateTime timestamp)
         {
+            if (moveNumber <= 0)
+                throw new ArgumentOutOfRangeException(nameof(moveNumber), "Move number must be greater than zero.");
+            if (playerId == Guid.Empty)
+                throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
+
             MoveNumber = moveNumber;
             PlayerId = playerId;
             Position = position;

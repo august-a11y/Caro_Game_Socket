@@ -1,4 +1,5 @@
 using CaroGame.Application.Interfaces.Repositories;
+using CaroGame.Domain.Enum;
 using System;
 using System.Linq;
 using System.Threading;
@@ -10,28 +11,61 @@ namespace CaroGame.Application.UseCases.SessionUseCase
     {
         private readonly ISessionRepository _sessionRepository;
         private readonly IRoomRepository _roomRepository;
+        private readonly IPlayerRepository _playerRepository;
+        private readonly TimeProvider _timeProvider;
 
-        public PlayerDisconnectHandler(ISessionRepository sessionRepository, IRoomRepository roomRepository)
+        public PlayerDisconnectHandler(
+            ISessionRepository sessionRepository,
+            IRoomRepository roomRepository,
+            IPlayerRepository playerRepository,
+            TimeProvider timeProvider)
         {
-            _sessionRepository = sessionRepository;
-            _roomRepository = roomRepository;
+            _sessionRepository = sessionRepository
+                ?? throw new ArgumentNullException(nameof(sessionRepository));
+            _roomRepository = roomRepository
+                ?? throw new ArgumentNullException(nameof(roomRepository));
+            _playerRepository = playerRepository
+                ?? throw new ArgumentNullException(nameof(playerRepository));
+            _timeProvider = timeProvider
+                ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
         public async Task HandleAsync(Guid playerId, CancellationToken cancellationToken)
         {
-            await _sessionRepository.RemoveAsync(playerId);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var session = await _sessionRepository.GetByPlayerIdAsync(playerId);
+            if (session is null)
+                return;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var player = await _playerRepository.GetByIdAsync(playerId);
+            if (player is null)
+                throw new KeyNotFoundException($"Player with ID '{playerId}' was not found.");
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var ongoingRooms = await _roomRepository.GetOngoingRoomsAsync();
             var room = ongoingRooms.FirstOrDefault(r => 
-                r.PlayerX.PlayerId == playerId || r.PlayerO.PlayerId == playerId);
+                r.IsActivePlayer(playerId));
 
-            if (room != null)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
+            session.MarkDisconnected(now);
+            player.Status = PlayerStatus.Offline;
+
+            if (room is not null)
             {
-                // Giả định Room có phương thức MarkDisconnected. 
-                // Nếu chưa có, người phụ trách Domain cần bổ sung.
-                // room.MarkDisconnected(playerId, gracePeriodSeconds: 60);
-                await _roomRepository.UpdateAsync(room);
+                room.MarkDisconnected(playerId, gracePeriodSeconds: 60, now);
             }
+
+            await _sessionRepository.UpdateAsync(session);
+            await _playerRepository.UpdateAsync(player);
+
+            if (room is not null)
+                await _roomRepository.UpdateAsync(room);
         }
     }
 }
