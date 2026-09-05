@@ -1,35 +1,26 @@
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
-using CaroGame.Domain.Services;
-using CaroGame.Domain.ValueObjects;
 
-namespace CaroGame.Application.UseCases.GamePlay;
+namespace CaroGame.Application.UseCases.Match;
 
-public sealed class MoveSubmitter : IMoveSubmitter
+public sealed class PlayerReadyHandler : IPlayerReadyHandler
 {
     private readonly IRoomRepository _roomRepository;
-    private readonly IWinConditionChecker _winConditionChecker;
-    private readonly IMatchEnder _matchEnder;
     private readonly TimeProvider _timeProvider;
 
-    public MoveSubmitter(
+    public PlayerReadyHandler(
         IRoomRepository roomRepository,
-        IWinConditionChecker winConditionChecker,
-        IMatchEnder matchEnder,
         TimeProvider timeProvider)
     {
         _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
-        _winConditionChecker = winConditionChecker ?? throw new ArgumentNullException(nameof(winConditionChecker));
-        _matchEnder = matchEnder ?? throw new ArgumentNullException(nameof(matchEnder));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public async Task<Room> SubmitMoveAsync(
+    public async Task<Room> HandleAsync(
         Guid roomId,
         Guid playerId,
-        Position position,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -43,15 +34,15 @@ public sealed class MoveSubmitter : IMoveSubmitter
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var move = room.ApplyMove(
-            playerId,
-            position,
-            _timeProvider.GetUtcNow().UtcDateTime);
-        var match = room.CurrentMatch!;
-        var result = _winConditionChecker.Check(match.Board, move);
+        if (room.Status != RoomStatus.Waiting)
+            throw new InvalidOperationException("Players can become ready only while the room is waiting.");
+        if (!room.IsActivePlayer(playerId))
+            throw new InvalidOperationException("Only an active player can become ready.");
+        if (!room.MarkReady(playerId))
+            return room;
 
-        if (result != MatchResultType.Continue)
-            return await _matchEnder.EndMatchAsync(room, result, cancellationToken);
+        if (room.ArePlayersReady)
+            room.StartNewMatch(_timeProvider.GetUtcNow().UtcDateTime);
 
         await _roomRepository.UpdateAsync(room);
         return room;

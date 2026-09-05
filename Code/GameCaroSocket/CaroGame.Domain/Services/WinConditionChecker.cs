@@ -2,73 +2,63 @@
 using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
 
-namespace CaroGame.Domain.Services
+namespace CaroGame.Domain.Services;
+
+public sealed class WinConditionChecker : IWinConditionChecker
 {
-    public class WinConditionChecker : IWinConditionChecker
+    public MatchResultType Check(Board board, Move lastMove)
     {
+        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(lastMove);
 
-        public MatchResultType Check(Board board, Move lastMove)
+        if (board.GetSymbol(lastMove.Position) != lastMove.Symbol)
+            throw new ArgumentException("Last move does not match the board state.", nameof(lastMove));
+
+        if (HasWon(board, lastMove.Position, lastMove.Symbol))
+            return lastMove.Symbol == Symbol.X
+                ? MatchResultType.PlayerXWin
+                : MatchResultType.PlayerOWin;
+
+        return board.IsFull() ? MatchResultType.Draw : MatchResultType.Continue;
+    }
+
+    private static bool HasWon(Board board, Position position, Symbol symbol) =>
+        CheckAxis(board, position, symbol, 1, 0) ||
+        CheckAxis(board, position, symbol, 0, 1) ||
+        CheckAxis(board, position, symbol, 1, 1) ||
+        CheckAxis(board, position, symbol, 1, -1);
+
+    private static bool CheckAxis(Board board, Position position, Symbol symbol, int deltaX, int deltaY)
+    {
+        var total = 1
+            + CountInDirection(board, position, symbol, deltaX, deltaY)
+            + CountInDirection(board, position, symbol, -deltaX, -deltaY);
+
+        return total >= 5;
+    }
+
+    private static int CountInDirection(
+        Board board,
+        Position position,
+        Symbol symbol,
+        int deltaX,
+        int deltaY)
+    {
+        var count = 0;
+        var x = position.X + deltaX;
+        var y = position.Y + deltaY;
+
+        while (x >= 0 && x < board.Size && y >= 0 && y < board.Size)
         {
-            var symbol = lastMove.Symbol;
-            var pos = lastMove.Position;
+            if (board.GetSymbol(new Position(x, y)) != symbol)
+                break;
 
-            if (HasWon(board, pos, symbol))
-            {
-                return symbol == Symbol.X ? MatchResultType.PlayerXWin : MatchResultType.PlayerOWin;
-            }
-
-            if (board.IsFull()) 
-            {
-                return MatchResultType.Draw;
-            }
-
-            return MatchResultType.Continue;
-
+            count++;
+            x += deltaX;
+            y += deltaY;
         }
 
-
-
-
-        private bool HasWon(Board board, Position pos, Symbol symbol)
-        {
-            return CheckAxis(board, pos, symbol, 1, 0) ||  
-                   CheckAxis(board, pos, symbol, 0, 1) ||  
-                   CheckAxis(board, pos, symbol, 1, 1) ||  
-                   CheckAxis(board, pos, symbol, 1, -1);   
-        }
-
-        private bool CheckAxis(Board board, Position pos, Symbol symbol, int colDelta, int rowDelta)
-        {
-            int totalCount = 1 + CountInDirection(board._cells, pos, symbol, colDelta, rowDelta) + CountInDirection(board._cells, pos, symbol, -colDelta, -rowDelta); 
-
-            return totalCount >= 5;
-
-        }
-
-        private int CountInDirection(Symbol?[,] board, Position position, Symbol symbol, int colDelta, int rowDelta)
-        {
-            int count = 0;
-
-            int row = position.X + colDelta;
-            int col = position.Y + rowDelta;
-
-            while (IsInsideBoard(board, col, row) &&
-                   board[row, col] == symbol)
-            {
-                count++;
-                row += rowDelta;
-                col += colDelta;
-            }
-
-            return count;
-        }
-
-        private bool IsInsideBoard(Symbol?[,] board, int col, int row)
-        {
-            int rowCount = board.GetLength(0);
-            int colCount = board.GetLength(1);
-            return row >= 0 && row < rowCount && col >= 0 && col < colCount;
-        }
+        return count;
     }
 }
 

@@ -5,7 +5,10 @@ namespace CaroGame.Application.UseCases.GamePlay
 {
     public interface IMatchEnder
     {
-        Task<Room> EndMatchAsync(Guid roomId, MatchResultType matchResultType, CancellationToken cancellationToken);
+        Task<Room> EndMatchAsync(
+            Room room,
+            MatchResultType matchResultType,
+            CancellationToken cancellationToken);
     }
 }
 

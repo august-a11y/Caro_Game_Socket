@@ -1,90 +1,96 @@
-using System.Threading;
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
 
-namespace CaroGame.Application.UseCases.GamePlay
+namespace CaroGame.Application.UseCases.GamePlay;
+
+public sealed class EndMatchUseCase : IMatchEnder
 {
-    public sealed class EndMatchUseCase : IMatchEnder
+    private readonly IRoomRepository _roomRepository;
+    private readonly IPlayerRepository _playerRepository;
+
+    public EndMatchUseCase(
+        IRoomRepository roomRepository,
+        IPlayerRepository playerRepository)
     {
-        private readonly IRoomRepository _roomRepository;
-        private readonly IPlayerRepository _playerRepository;
+        _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
+        _playerRepository = playerRepository ?? throw new ArgumentNullException(nameof(playerRepository));
+    }
 
-        public EndMatchUseCase(IRoomRepository roomRepository, IPlayerRepository playerRepository)
-        {
-            _roomRepository = roomRepository;
-            _playerRepository = playerRepository;
-        }
+    public async Task<Room> EndMatchAsync(
+        Room room,
+        MatchResultType matchResultType,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(room);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        public async Task<Room> EndMatchAsync(
-            Guid roomId,
-            MatchResultType matchResultType,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        if (!System.Enum.IsDefined(matchResultType))
+            throw new ArgumentOutOfRangeException(
+                nameof(matchResultType),
+                matchResultType,
+                "Unknown match result.");
 
-            var room = await _roomRepository.GetByIdAsync(roomId)
-                ?? throw new InvalidOperationException($"Room '{roomId}' was not found.");
+        if (matchResultType == MatchResultType.Continue)
+            throw new ArgumentException(
+                "A match can only be ended with a final result.",
+                nameof(matchResultType));
 
-            if (room.CurrentMatch is null)
-                throw new InvalidOperationException("Room chua co tran dau nao dang dien ra.");
-
-            room.CurrentMatch.EndMatch(matchResultType);
-
-            await ApplyStatsAsync(room.CurrentMatch, matchResultType);
-
-            await _roomRepository.UpdateAsync(room);
-
+        if (room.Status == RoomStatus.Finished)
             return room;
-        }
 
-        private async Task ApplyStatsAsync(CaroGame.Domain.Entities.Match match, MatchResultType result)
+        if (room.Status != RoomStatus.Playing || room.CurrentMatch is null)
+            throw new InvalidOperationException("Room does not have an active match.");
+
+        var playerX = await _playerRepository.GetByIdAsync(room.PlayerX.PlayerId);
+        var playerO = await _playerRepository.GetByIdAsync(room.PlayerO.PlayerId);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (room.Status == RoomStatus.Finished)
+            return room;
+
+        room.EndMatch(matchResultType);
+
+        ApplyResult(playerX, playerO, matchResultType);
+
+        await UpdatePlayerAsync(playerX);
+        await UpdatePlayerAsync(playerO);
+        await _roomRepository.UpdateAsync(room);
+
+        return room;
+    }
+
+    private static void ApplyResult(
+        Player? playerX,
+        Player? playerO,
+        MatchResultType result)
+    {
+        switch (result)
         {
-            switch (result)
-            {
-                case MatchResultType.PlayerXWin:
-                    await RecordWinLossAsync(match.PlayerXId, match.PlayerOId);
-                    break;
-
-                case MatchResultType.PlayerOWin:
-                    await RecordWinLossAsync(match.PlayerOId, match.PlayerXId);
-                    break;
-
-                case MatchResultType.Draw:
-                    await RecordDrawAsync(match.PlayerXId);
-                    await RecordDrawAsync(match.PlayerOId);
-                    break;
-
-                case MatchResultType.Continue:
-                    break;
-            }
+            case MatchResultType.PlayerXWin:
+                playerX?.Stats.RecordWin();
+                playerO?.Stats.RecordLoss();
+                break;
+            case MatchResultType.PlayerOWin:
+                playerO?.Stats.RecordWin();
+                playerX?.Stats.RecordLoss();
+                break;
+            case MatchResultType.Draw:
+                playerX?.Stats.RecordDraw();
+                playerO?.Stats.RecordDraw();
+                break;
         }
+    }
 
-        private async Task RecordWinLossAsync(Guid winnerId, Guid loserId)
-        {
-            var winner = await _playerRepository.GetByIdAsync(winnerId);
-            if (winner is not null)
-            {
-                winner.Stats.RecordWin();
-                await _playerRepository.UpdateAsync(winner);
-            }
+    private async Task UpdatePlayerAsync(Player? player)
+    {
+        if (player is null)
+            return;
 
-            var loser = await _playerRepository.GetByIdAsync(loserId);
-            if (loser is not null)
-            {
-                loser.Stats.RecordLoss();
-                await _playerRepository.UpdateAsync(loser);
-            }
-        }
+        if (player.Status != PlayerStatus.Offline)
+            player.Status = PlayerStatus.Free;
 
-        private async Task RecordDrawAsync(Guid playerId)
-        {
-            var player = await _playerRepository.GetByIdAsync(playerId);
-            if (player is not null)
-            {
-                player.Stats.RecordDraw();
-                await _playerRepository.UpdateAsync(player);
-            }
-        }
+        await _playerRepository.UpdateAsync(player);
     }
 }

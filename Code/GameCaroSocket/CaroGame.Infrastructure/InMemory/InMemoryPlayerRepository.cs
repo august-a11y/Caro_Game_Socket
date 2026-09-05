@@ -1,81 +1,96 @@
-﻿using CaroGame.Application.Interfaces.Repositories;
+using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
-using System;
+using CaroGame.Domain.Enum;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace CaroGame.Infrastructure.InMemory
+namespace CaroGame.Infrastructure.InMemory;
+
+public sealed class InMemoryPlayerRepository : IPlayerRepository
 {
-    public class InMemoryPlayerRepository : IPlayerRepository
+    private readonly ConcurrentDictionary<Guid, Player> _players = new();
+    private readonly object _sync = new();
+
+    public Task AddAsync(Player player)
     {
-        private readonly ConcurrentDictionary<Guid, Player> _players = new();
+        ArgumentNullException.ThrowIfNull(player);
 
-        public Task AddAsync(Player player)
+        lock (_sync)
         {
-            if (player is null)
-                throw new ArgumentNullException(nameof(player));
+            if (_players.ContainsKey(player.PlayerId))
+                throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
+            EnsureNicknameIsAvailable(player);
 
-            _players[player.PlayerId] = player;
-
-            return Task.CompletedTask;
+            if (!_players.TryAdd(player.PlayerId, player))
+                throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
         }
 
-        public Task<bool> ExistsByNicknameAsync(string nickname)
-        {
-            var exists = _players.Values
-                .Any(p => string.Equals(p.Nickname, nickname, StringComparison.OrdinalIgnoreCase));
+        return Task.CompletedTask;
+    }
 
-            return Task.FromResult(exists);
+    public Task<bool> ExistsByNicknameAsync(string nickname)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(nickname);
+
+        lock (_sync)
+        {
+            return Task.FromResult(_players.Values.Any(player =>
+                string.Equals(player.Nickname, nickname.Trim(), StringComparison.OrdinalIgnoreCase)));
         }
+    }
 
-        public Task<Player?> GetByIdAsync(Guid playerId)
+    public Task<Player?> GetByIdAsync(Guid playerId)
+    {
+        _players.TryGetValue(playerId, out var player);
+        return Task.FromResult(player);
+    }
+
+    public Task<Player?> GetByNicknameAsync(string nickname)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(nickname);
+
+        lock (_sync)
         {
-            _players.TryGetValue(playerId, out var player);
-
+            var normalizedNickname = nickname.Trim();
+            var player = _players.Values.FirstOrDefault(candidate =>
+                string.Equals(candidate.Nickname, normalizedNickname, StringComparison.OrdinalIgnoreCase));
             return Task.FromResult(player);
         }
+    }
 
-        public Task<Player?> GetByNicknameAsync(string nickname)
+    public Task<IReadOnlyList<Player>> GetOnlinePlayersAsync()
+    {
+        lock (_sync)
         {
-            var player = _players.Values
-                .FirstOrDefault(p => string.Equals(p.Nickname, nickname, StringComparison.OrdinalIgnoreCase));
-
-            return Task.FromResult(player);
-        }
-
-        public Task<IReadOnlyList<Player>> GetOnlinePlayersAsync()
-        {
-            // Player entity hiện chưa có field trạng thái online/offline.
-            // Repo chỉ lưu trữ; tạm thời trả về toàn bộ player đang có trong repo.
-            // Nếu cần lọc đúng player đang online, nên kết hợp với ISessionRepository
-            // ở tầng use case (OnlinePlayerFinder), hoặc bổ sung field Status vào
-            // Player entity (domain) - phần này ngoài scope của Player repo.
-            IReadOnlyList<Player> players = _players.Values.ToList();
-
+            IReadOnlyList<Player> players = _players.Values
+                .Where(player => player.Status != PlayerStatus.Offline)
+                .ToList();
             return Task.FromResult(players);
         }
+    }
 
-        public Task UpdateAsync(Player player)
+    public Task UpdateAsync(Player player)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+
+        lock (_sync)
         {
-            if (player is null)
-                throw new ArgumentNullException(nameof(player));
+            if (!_players.ContainsKey(player.PlayerId))
+                throw new KeyNotFoundException($"Player with ID '{player.PlayerId}' was not found.");
 
-            while (true)
-            {
-                if (!_players.TryGetValue(player.PlayerId, out var existing))
-                {
-                    break;
-                }
+            EnsureNicknameIsAvailable(player);
+            _players[player.PlayerId] = player;
+        }
 
-                if (_players.TryUpdate(player.PlayerId, player, existing))
-                {
-                    break;
-                }
-            }
+        return Task.CompletedTask;
+    }
 
-            return Task.CompletedTask;
+    private void EnsureNicknameIsAvailable(Player player)
+    {
+        if (_players.Values.Any(existing =>
+            existing.PlayerId != player.PlayerId &&
+            string.Equals(existing.Nickname, player.Nickname, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"Nickname '{player.Nickname}' is already in use.");
         }
     }
 }

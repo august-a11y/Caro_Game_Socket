@@ -1,0 +1,4 @@
+# Keep unit test projects local.
+/CaroGame.Application.Tests/
+/CaroGame.Domain.Tests/
+/CaroGame.Infrastructure.Tests/

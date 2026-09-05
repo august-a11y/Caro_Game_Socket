@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.Match
 {
-    public interface ILeaveSpectatorUseCase
+    public interface ISpectatorLeaver
     {
-        Task<Room> LeaveSpectator(Guid roomId, Guid playerId);
+        Task<Room> LeaveSpectator(
+            Guid roomId,
+            Guid playerId,
+            CancellationToken cancellationToken = default);
     }
 }

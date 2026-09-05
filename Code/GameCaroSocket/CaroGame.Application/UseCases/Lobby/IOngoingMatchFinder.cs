@@ -1,10 +1,9 @@
 using CaroGame.Application.Contracts;
 
-namespace CaroGame.Application.UseCases.Lobby
+namespace CaroGame.Application.UseCases.Lobby;
+
+public interface IOngoingMatchFinder
 {
-    public interface IOngoingMatchFinder
-    {
-        Task<List<RoomSummary>> FindOngoingMatchAsync(Guid roomId, CancellationToken cancellationToken);
-    }
+    Task<List<RoomSummary>> FindOngoingMatchesAsync(CancellationToken cancellationToken);
 }
 
