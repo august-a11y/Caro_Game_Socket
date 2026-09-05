@@ -1,55 +1,48 @@
 ﻿using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Text;
+namespace CaroGame.Domain.Entities;
 
-namespace CaroGame.Domain.Entities
+public sealed class Board
 {
-    public sealed class Board
+    private readonly Symbol?[,] _cells;
+
+    public int Size { get; }
+    public int PlacedCount { get; private set; }
+
+    public Board(int size = 15)
     {
-        private readonly Symbol?[,] _cells;
+        if (size <= 0)
+            throw new ArgumentOutOfRangeException(nameof(size), "Board size must be greater than zero.");
 
-        public int Size { get; }
+        Size = size;
+        _cells = new Symbol?[size, size];
+    }
 
-        public Board(int size = 15)
-        {
-            if (size <= 0)
-                throw new ArgumentOutOfRangeException(nameof(size));
+    public Symbol? GetSymbol(Position position)
+    {
+        EnsureInBounds(position);
+        return _cells[position.Y, position.X];
+    }
 
-            Size = size;
-            _cells = new Symbol?[size, size];
-        }
-        public void PlaceSymbol(Position position, Symbol symbol)
-        {
-            if (!IsInBounds(position))
-                throw new ArgumentOutOfRangeException(nameof(position));
-            if (_cells[position.Y, position.X] is not null)
-                throw new InvalidOperationException("Cell is already occupied.");
-            _cells[position.Y, position.X] = symbol;
-        }   
-        
+    public void PlaceSymbol(Position position, Symbol symbol)
+    {
+        EnsureInBounds(position);
 
-        private bool IsInBounds(Position position)
-        {
-            return position.X >= 0 &&
-                   position.X < Size &&
-                   position.Y >= 0 &&
-                   position.Y < Size;
-        }
+        if (!System.Enum.IsDefined(symbol))
+            throw new ArgumentOutOfRangeException(nameof(symbol), symbol, "Symbol must be X or O.");
 
-        public bool IsFull()
-        {
-            for (var y = 0; y < Size; y++)
-            {
-                for (var x = 0; x < Size; x++)
-                {
-                    if (_cells[y, x] is null)
-                        return false;
-                }
-            }
+        if (_cells[position.Y, position.X] is not null)
+            throw new InvalidOperationException("The selected position is already occupied.");
 
-            return true;
-        }
+        _cells[position.Y, position.X] = symbol;
+        PlacedCount++;
+    }
+
+    public bool IsFull() => PlacedCount == Size * Size;
+
+    private void EnsureInBounds(Position position)
+    {
+        if (position.X < 0 || position.X >= Size || position.Y < 0 || position.Y >= Size)
+            throw new ArgumentOutOfRangeException(nameof(position), "Position must be inside the board.");
     }
 }

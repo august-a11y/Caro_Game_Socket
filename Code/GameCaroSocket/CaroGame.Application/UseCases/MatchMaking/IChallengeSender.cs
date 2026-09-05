@@ -1,10 +1,6 @@
-using CaroGame.Domain.Entities;
+namespace CaroGame.Application.UseCases.MatchMaking;
 
-namespace CaroGame.Application.UseCases.MatchMaking
+public interface IChallengeSender
 {
-    public interface IChallengeSender
-    {
-        Task<Challenge> SendAsync(Guid fromPlayerId, Guid toPlayerId, CancellationToken cancellationToken);
-    }
+    Task<bool> SendChallengeAsync(string challengerId, string opponentId, CancellationToken cancellationToken = default);
 }
-

@@ -6,8 +6,8 @@ namespace CaroGame.Domain.Enum
 {
     public enum MatchResultType
     {
-        PlayerAWin,
-        PlayerBWin,
+        PlayerXWin,
+        PlayerOWin,
         Draw,
         Continue
     }

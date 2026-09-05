@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CaroGame.Domain.Entities
+namespace CaroGame.Domain.ValueObjects
 {
     public sealed class DisconnectInfo
     {
@@ -15,6 +15,13 @@ namespace CaroGame.Domain.Entities
             DateTime disconnectedAt,
             DateTime gracePeriodEndsAt)
         {
+            if (playerId == Guid.Empty)
+                throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
+            if (gracePeriodEndsAt <= disconnectedAt)
+                throw new ArgumentException(
+                    "Grace period must end after the disconnection time.",
+                    nameof(gracePeriodEndsAt));
+
             PlayerId = playerId;
             DisconnectedAt = disconnectedAt;
             GracePeriodEndsAt = gracePeriodEndsAt;

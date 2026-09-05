@@ -22,8 +22,18 @@ namespace CaroGame.Domain.Entities
         public Challenge(
             Guid fromPlayerId,
             Guid toPlayerId,
-            TimeSpan expiration)
+            TimeSpan expiration,
+            DateTime? createdAt = null)
         {
+            if (fromPlayerId == Guid.Empty)
+                throw new ArgumentException("Challenger must have a valid identifier.", nameof(fromPlayerId));
+            if (toPlayerId == Guid.Empty)
+                throw new ArgumentException("Opponent must have a valid identifier.", nameof(toPlayerId));
+            if (fromPlayerId == toPlayerId)
+                throw new ArgumentException("A player cannot challenge themselves.", nameof(toPlayerId));
+            if (expiration <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiration), "Expiration must be greater than zero.");
+
             ChallengeId = Guid.NewGuid();
 
             FromPlayerId = fromPlayerId;
@@ -31,25 +41,21 @@ namespace CaroGame.Domain.Entities
 
             Status = ChallengeStatus.Pending;
 
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = createdAt ?? DateTime.UtcNow;
 
             ExpiresAt = CreatedAt.Add(expiration);
         }
 
         public void Accept()
         {
-            if (Status != ChallengeStatus.Pending)
-                throw new InvalidOperationException(
-                    "Challenge is no longer pending.");
+            EnsurePending();
 
             Status = ChallengeStatus.Accepted;
         }
 
         public void Reject()
         {
-            if (Status != ChallengeStatus.Pending)
-                throw new InvalidOperationException(
-                    "Challenge is no longer pending.");
+            EnsurePending();
 
             Status = ChallengeStatus.Rejected;
         }
@@ -58,6 +64,14 @@ namespace CaroGame.Domain.Entities
         {
             if (Status == ChallengeStatus.Pending)
                 Status = ChallengeStatus.Expired;
+        }
+
+        public bool IsExpired(DateTime timestamp) => timestamp >= ExpiresAt;
+
+        private void EnsurePending()
+        {
+            if (Status != ChallengeStatus.Pending)
+                throw new InvalidOperationException("Challenge is no longer pending.");
         }
     }
 }
