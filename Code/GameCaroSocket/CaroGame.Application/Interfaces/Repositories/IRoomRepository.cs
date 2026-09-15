@@ -7,14 +7,15 @@ namespace CaroGame.Application.Interfaces.Repositories
 {
     public interface IRoomRepository
     {
-        Task<Room?> GetByIdAsync(Guid roomId);
+        Room? GetById(Guid roomId);
+        IReadOnlyList<Room> GetAll();
 
-        Task<IReadOnlyList<Room>> GetOngoingRoomsAsync();
+        IReadOnlyList<Room> GetOngoingRooms();
 
-        Task AddAsync(Room room);
+        void Add(Room room);
 
-        Task UpdateAsync(Room room);
+        void Update(Room room);
 
-        Task RemoveAsync(Guid roomId);
+        void Remove(Guid roomId);
     }
 }

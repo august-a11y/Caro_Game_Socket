@@ -26,10 +26,8 @@ public sealed class ChallengeSender : IChallengeSender
         _timeProvider = timeProvider;
     }
 
-    public async Task<bool> SendChallengeAsync(string challengerId, string opponentId, CancellationToken cancellationToken = default)
+    public bool SendChallenge(string challengerId, string opponentId)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
         if (!Guid.TryParse(challengerId, out var challengerGuid) ||
             !Guid.TryParse(opponentId, out var opponentGuid) ||
             challengerGuid == Guid.Empty ||
@@ -37,23 +35,19 @@ public sealed class ChallengeSender : IChallengeSender
             challengerGuid == opponentGuid)
             return false;
 
-        var challenger = await _playerRepository.GetByIdAsync(challengerGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var challenger = _playerRepository.GetById(challengerGuid);
 
         if (challenger is null || challenger.Status != PlayerStatus.Free)
             return false;
 
-        var opponent = await _playerRepository.GetByIdAsync(opponentGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var opponent = _playerRepository.GetById(opponentGuid);
 
         if (opponent is null || opponent.Status != PlayerStatus.Free)
             return false;
 
-        var challengesToOpponent = await _challengeRepository.GetPendingForPlayerAsync(opponentGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var challengesToOpponent = _challengeRepository.GetPendingForPlayer(opponentGuid);
 
-        var challengesToChallenger = await _challengeRepository.GetPendingForPlayerAsync(challengerGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var challengesToChallenger = _challengeRepository.GetPendingForPlayer(challengerGuid);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var pairChallenges = challengesToOpponent
@@ -71,23 +65,20 @@ public sealed class ChallengeSender : IChallengeSender
                 continue;
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            existingChallenge.Expire();
-            await _challengeRepository.UpdateAsync(existingChallenge);
-            cancellationToken.ThrowIfCancellationRequested();
+            existingChallenge.Expire(now);
+            _challengeRepository.Update(existingChallenge);
         }
 
         if (hasActiveChallenge)
             return false;
 
-        cancellationToken.ThrowIfCancellationRequested();
         var challenge = new Challenge(
             challengerGuid,
             opponentGuid,
             ChallengeLifetime,
             now);
 
-        await _challengeRepository.AddAsync(challenge);
+        _challengeRepository.Add(challenge);
         return true;
     }
 

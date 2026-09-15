@@ -13,12 +13,9 @@ public sealed class OnlinePlayerFinder : IOnlinePlayerFinder
         _playerRepository = playerRepository;
     }
 
-    public async Task<List<PlayerInfo>> FindOnlinePlayersAsync(
-        CancellationToken cancellationToken)
+    public List<PlayerInfo> FindOnlinePlayers()
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var players = await _playerRepository.GetOnlinePlayersAsync();
-        cancellationToken.ThrowIfCancellationRequested();
+        var players = _playerRepository.GetOnlinePlayers();
 
         return players
             .Select(player => new PlayerInfo

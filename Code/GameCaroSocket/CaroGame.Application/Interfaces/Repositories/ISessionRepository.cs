@@ -7,16 +7,17 @@ namespace CaroGame.Application.Interfaces.Repositories
 {
     public interface ISessionRepository
     {
-        Task<Session?> GetByPlayerIdAsync(Guid playerId);
+        Session? GetByPlayerId(Guid playerId);
+        IReadOnlyList<Session> GetAll();
 
-        Task<Session?> GetByIdAsync(Guid sessionId);
+        Session? GetById(Guid sessionId);
 
-        Task AddAsync(Session session);
+        void Add(Session session);
 
-        Task UpdateAsync(Session session);
+        void Update(Session session);
 
-        Task RemoveAsync(Guid playerId);
+        void Remove(Guid playerId);
 
-        Task<bool> ExistsAsync(Guid playerId);
+        bool Exists(Guid playerId);
     }
 }

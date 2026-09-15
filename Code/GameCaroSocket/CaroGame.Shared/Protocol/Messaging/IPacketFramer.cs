@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 
-namespace CaroGame.Infrastructure.Networking.Messaging
+namespace CaroGame.Shared.Networking.Messaging
 {
     public interface IPacketFramer
     {

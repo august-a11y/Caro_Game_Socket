@@ -4,7 +4,7 @@ namespace CaroGame.Application.UseCases.Lobby
 {
     public interface IOnlinePlayerFinder
     {
-        Task<List<PlayerInfo>> FindOnlinePlayersAsync(CancellationToken cancellationToken);
+        List<PlayerInfo> FindOnlinePlayers();
     }
 }
 

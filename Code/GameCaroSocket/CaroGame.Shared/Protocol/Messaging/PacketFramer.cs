@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 
-namespace CaroGame.Infrastructure.Networking.Messaging
+namespace CaroGame.Shared.Networking.Messaging
 {
     public class PacketFramer : IPacketFramer
     {
@@ -35,7 +35,7 @@ namespace CaroGame.Infrastructure.Networking.Messaging
 
             int bodyLength = BinaryPrimitives.ReadInt32BigEndian(headerBuffer);
 
-            if (bodyLength < 0 || bodyLength > MaxPayloadSize)
+            if (bodyLength < MessageTypeSize || bodyLength > MaxPayloadSize)
             {
                 throw new InvalidDataException("Invalid payload length");
             }
@@ -56,7 +56,8 @@ namespace CaroGame.Infrastructure.Networking.Messaging
             var messageType = (MessageTypes)messageTypeValue;
 
 
-            byte[]? payloadBuffer = await ReadExactlyAsync(clientSocket, bodyLength - MessageTypeSize, cancellationToken);
+            byte[] payloadBuffer = await ReadExactlyAsync(clientSocket, bodyLength - MessageTypeSize, cancellationToken)
+                ?? throw new InvalidDataException("Connection closed before receiving payload");
             
             //Buffer.BlockCopy(messageTypeBuffer, MessageTypeSize, payloadBuffer, 0, payloadBuffer.Length);
 

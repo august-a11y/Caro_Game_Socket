@@ -1,4 +1,4 @@
-﻿namespace CaroGame.Infrastructure.Networking.Messaging
+﻿namespace CaroGame.Shared.Networking.Messaging
 {
     public class MessageSerializer : IMessageSerializer
     {

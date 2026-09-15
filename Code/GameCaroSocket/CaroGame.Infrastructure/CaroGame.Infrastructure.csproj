@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="SqlServer\" />
+    <Compile Remove="SqlServer\**" />
+    <EmbeddedResource Remove="SqlServer\**" />
+    <None Remove="SqlServer\**" />
   </ItemGroup>
 
   <ItemGroup>

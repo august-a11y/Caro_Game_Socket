@@ -4,7 +4,7 @@ namespace CaroGame.Application.UseCases.SessionUseCase
 {
     public interface IPlayerJoiner
     {
-        Task<Session> JoinAsync(string nickname, CancellationToken cancellationToken);
+        Session Join(string nickname);
     }
 }
 

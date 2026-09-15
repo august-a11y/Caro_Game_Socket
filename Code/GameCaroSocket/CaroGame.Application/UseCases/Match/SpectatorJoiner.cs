@@ -13,22 +13,18 @@ public sealed class SpectatorJoiner : ISpectatorJoiner
         _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
     }
 
-    public async Task<Room> JoinSpectator(
+    public Room JoinSpectator(
         Guid roomId,
-        Guid playerId,
-        CancellationToken cancellationToken = default)
+        Guid playerId)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
         if (roomId == Guid.Empty)
             throw new ArgumentException("Room identifier must not be empty.", nameof(roomId));
         if (playerId == Guid.Empty)
             throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
 
-        var room = await _roomRepository.GetByIdAsync(roomId)
+        var room = _roomRepository.GetById(roomId)
             ?? throw new KeyNotFoundException($"Room with ID '{roomId}' was not found.");
 
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (room.Status != RoomStatus.Playing)
             throw new InvalidOperationException("Spectators can only join a match in progress.");
@@ -37,7 +33,7 @@ public sealed class SpectatorJoiner : ISpectatorJoiner
         if (!room.AddSpectator(playerId))
             return room;
 
-        await _roomRepository.UpdateAsync(room);
+        _roomRepository.Update(room);
         return room;
     }
 }

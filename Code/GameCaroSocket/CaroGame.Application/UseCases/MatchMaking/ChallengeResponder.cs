@@ -28,10 +28,8 @@ public sealed class ChallengeResponder : IChallengeResponder
         _timeProvider = timeProvider;
     }
 
-    public async Task<string?> RespondAsync(string challengerId, string opponentId, bool accept, CancellationToken cancellationToken = default)
+    public string? Respond(string challengerId, string opponentId, bool accept)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
         if (!Guid.TryParse(challengerId, out var challengerGuid) ||
             !Guid.TryParse(opponentId, out var opponentGuid) ||
             challengerGuid == Guid.Empty ||
@@ -39,8 +37,7 @@ public sealed class ChallengeResponder : IChallengeResponder
             challengerGuid == opponentGuid)
             return null;
 
-        var pendingChallenges = await _challengeRepository.GetPendingForPlayerAsync(opponentGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var pendingChallenges = _challengeRepository.GetPendingForPlayer(opponentGuid);
 
         var challenge = pendingChallenges.FirstOrDefault(c =>
             c.FromPlayerId == challengerGuid &&
@@ -52,26 +49,24 @@ public sealed class ChallengeResponder : IChallengeResponder
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         if (challenge.IsExpired(now))
         {
-            challenge.Expire();
-            await _challengeRepository.UpdateAsync(challenge);
+            challenge.Expire(now);
+            _challengeRepository.Update(challenge);
             return null;
         }
 
         if (!accept)
         {
-            challenge.Reject();
-            await _challengeRepository.UpdateAsync(challenge);
+            challenge.Reject(now);
+            _challengeRepository.Update(challenge);
             return null;
         }
 
-        var challenger = await _playerRepository.GetByIdAsync(challengerGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var challenger = _playerRepository.GetById(challengerGuid);
 
         if (challenger is null || challenger.Status != PlayerStatus.Free)
             return null;
 
-        var opponent = await _playerRepository.GetByIdAsync(opponentGuid);
-        cancellationToken.ThrowIfCancellationRequested();
+        var opponent = _playerRepository.GetById(opponentGuid);
 
         if (opponent is null || opponent.Status != PlayerStatus.Free)
             return null;
@@ -81,15 +76,15 @@ public sealed class ChallengeResponder : IChallengeResponder
             new PlayerSlot(opponentGuid, Symbol.O),
             createdAt: now);
 
-        await _roomRepository.AddAsync(room);
+        _roomRepository.Add(room);
 
         challenger.Status = PlayerStatus.InMatch;
         opponent.Status = PlayerStatus.InMatch;
-        await _playerRepository.UpdateAsync(challenger);
-        await _playerRepository.UpdateAsync(opponent);
+        _playerRepository.Update(challenger);
+        _playerRepository.Update(opponent);
 
-        challenge.Accept();
-        await _challengeRepository.UpdateAsync(challenge);
+        challenge.Accept(now);
+        _challengeRepository.Update(challenge);
 
         return room.RoomId.ToString();
     }

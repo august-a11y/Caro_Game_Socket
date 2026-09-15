@@ -8,22 +8,22 @@ public sealed class EndMatchUseCase : IMatchEnder
 {
     private readonly IRoomRepository _roomRepository;
     private readonly IPlayerRepository _playerRepository;
+    private readonly TimeProvider _time;
 
     public EndMatchUseCase(
         IRoomRepository roomRepository,
-        IPlayerRepository playerRepository)
+        IPlayerRepository playerRepository, TimeProvider? time = null)
     {
         _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
         _playerRepository = playerRepository ?? throw new ArgumentNullException(nameof(playerRepository));
+        _time = time ?? TimeProvider.System;
     }
 
-    public async Task<Room> EndMatchAsync(
-        Room room,
-        MatchResultType matchResultType,
-        CancellationToken cancellationToken)
+    public Room EndMatch(
+        Guid roomId,
+        MatchResultType matchResultType, string? reason = null)
     {
-        ArgumentNullException.ThrowIfNull(room);
-        cancellationToken.ThrowIfCancellationRequested();
+
 
         if (!System.Enum.IsDefined(matchResultType))
             throw new ArgumentOutOfRangeException(
@@ -35,28 +35,28 @@ public sealed class EndMatchUseCase : IMatchEnder
             throw new ArgumentException(
                 "A match can only be ended with a final result.",
                 nameof(matchResultType));
-
+        var room = _roomRepository.GetById(roomId)
+            ?? throw new KeyNotFoundException($"Room with ID '{roomId}' was not found.");
         if (room.Status == RoomStatus.Finished)
             return room;
 
         if (room.Status != RoomStatus.Playing || room.CurrentMatch is null)
             throw new InvalidOperationException("Room does not have an active match.");
 
-        var playerX = await _playerRepository.GetByIdAsync(room.PlayerX.PlayerId);
-        var playerO = await _playerRepository.GetByIdAsync(room.PlayerO.PlayerId);
+        var playerX = _playerRepository.GetById(room.PlayerX.PlayerId);
+        var playerO = _playerRepository.GetById(room.PlayerO.PlayerId);
 
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (room.Status == RoomStatus.Finished)
             return room;
 
-        room.EndMatch(matchResultType);
+        room.EndMatch(matchResultType, _time.GetUtcNow().UtcDateTime, reason);
 
         ApplyResult(playerX, playerO, matchResultType);
 
-        await UpdatePlayerAsync(playerX);
-        await UpdatePlayerAsync(playerO);
-        await _roomRepository.UpdateAsync(room);
+        UpdatePlayer(playerX);
+        UpdatePlayer(playerO);
+        _roomRepository.Update(room);
 
         return room;
     }
@@ -83,7 +83,7 @@ public sealed class EndMatchUseCase : IMatchEnder
         }
     }
 
-    private async Task UpdatePlayerAsync(Player? player)
+    private void UpdatePlayer(Player? player)
     {
         if (player is null)
             return;
@@ -91,6 +91,6 @@ public sealed class EndMatchUseCase : IMatchEnder
         if (player.Status != PlayerStatus.Offline)
             player.Status = PlayerStatus.Free;
 
-        await _playerRepository.UpdateAsync(player);
+        _playerRepository.Update(player);
     }
 }

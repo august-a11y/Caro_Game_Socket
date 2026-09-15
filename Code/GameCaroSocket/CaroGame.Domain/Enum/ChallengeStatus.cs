@@ -10,6 +10,7 @@ namespace CaroGame.Domain.Enum
         Accepted,
         Rejected,
         Expired,
+        Cancelled,
 
     }
 }

@@ -5,83 +5,66 @@ using System.Collections.Concurrent;
 
 namespace CaroGame.Infrastructure.InMemory;
 
+// Callers coordinate entity changes and multi-step operations using shared lobby/room locks.
+// ConcurrentDictionary protects individual dictionary operations only.
 public sealed class InMemoryPlayerRepository : IPlayerRepository
 {
     private readonly ConcurrentDictionary<Guid, Player> _players = new();
-    private readonly object _sync = new();
+    public void Remove(Guid playerId) => _players.TryRemove(playerId, out _);
 
-    public Task AddAsync(Player player)
+    public void Add(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
 
-        lock (_sync)
-        {
-            if (_players.ContainsKey(player.PlayerId))
-                throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
-            EnsureNicknameIsAvailable(player);
+        if (_players.ContainsKey(player.PlayerId))
+            throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
+        EnsureNicknameIsAvailable(player);
 
-            if (!_players.TryAdd(player.PlayerId, player))
-                throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
-        }
-
-        return Task.CompletedTask;
+        if (!_players.TryAdd(player.PlayerId, player))
+            throw new InvalidOperationException($"Player with ID '{player.PlayerId}' already exists.");
     }
 
-    public Task<bool> ExistsByNicknameAsync(string nickname)
+    public bool ExistsByNickname(string nickname)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(nickname);
 
-        lock (_sync)
-        {
-            return Task.FromResult(_players.Values.Any(player =>
-                string.Equals(player.Nickname, nickname.Trim(), StringComparison.OrdinalIgnoreCase)));
-        }
+        return _players.Values.Any(player =>
+            string.Equals(player.Nickname, nickname.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    public Task<Player?> GetByIdAsync(Guid playerId)
+    public Player? GetById(Guid playerId)
     {
         _players.TryGetValue(playerId, out var player);
-        return Task.FromResult(player);
+        return player;
     }
 
-    public Task<Player?> GetByNicknameAsync(string nickname)
+    public Player? GetByNickname(string nickname)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(nickname);
 
-        lock (_sync)
-        {
-            var normalizedNickname = nickname.Trim();
-            var player = _players.Values.FirstOrDefault(candidate =>
-                string.Equals(candidate.Nickname, normalizedNickname, StringComparison.OrdinalIgnoreCase));
-            return Task.FromResult(player);
-        }
+        var normalizedNickname = nickname.Trim();
+        var player = _players.Values.FirstOrDefault(candidate =>
+            string.Equals(candidate.Nickname, normalizedNickname, StringComparison.OrdinalIgnoreCase));
+        return player;
     }
 
-    public Task<IReadOnlyList<Player>> GetOnlinePlayersAsync()
+    public IReadOnlyList<Player> GetOnlinePlayers()
     {
-        lock (_sync)
-        {
-            IReadOnlyList<Player> players = _players.Values
-                .Where(player => player.Status != PlayerStatus.Offline)
-                .ToList();
-            return Task.FromResult(players);
-        }
+        IReadOnlyList<Player> players = _players.Values
+            .Where(player => player.Status != PlayerStatus.Offline)
+            .ToList();
+        return players;
     }
 
-    public Task UpdateAsync(Player player)
+    public void Update(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
 
-        lock (_sync)
-        {
-            if (!_players.ContainsKey(player.PlayerId))
-                throw new KeyNotFoundException($"Player with ID '{player.PlayerId}' was not found.");
+        if (!_players.ContainsKey(player.PlayerId))
+            throw new KeyNotFoundException($"Player with ID '{player.PlayerId}' was not found.");
 
-            EnsureNicknameIsAvailable(player);
-            _players[player.PlayerId] = player;
-        }
-
-        return Task.CompletedTask;
+        EnsureNicknameIsAvailable(player);
+        _players[player.PlayerId] = player;
     }
 
     private void EnsureNicknameIsAvailable(Player player)

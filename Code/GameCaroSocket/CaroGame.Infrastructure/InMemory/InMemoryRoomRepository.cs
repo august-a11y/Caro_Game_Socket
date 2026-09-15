@@ -5,63 +5,51 @@ using System.Collections.Concurrent;
 
 namespace CaroGame.Infrastructure.InMemory;
 
+// Callers coordinate entity changes and multi-step operations using shared lobby/room locks.
+// ConcurrentDictionary protects individual dictionary operations only.
 public sealed class InMemoryRoomRepository : IRoomRepository
 {
     private readonly ConcurrentDictionary<Guid, Room> _rooms = new();
-    private readonly object _sync = new();
+    public IReadOnlyList<Room> GetAll() => _rooms.Values.ToArray();
 
-    public Task<Room?> GetByIdAsync(Guid roomId)
+    public Room? GetById(Guid roomId)
     {
         _rooms.TryGetValue(roomId, out var room);
-        return Task.FromResult(room);
+        return room;
     }
 
-    public Task<IReadOnlyList<Room>> GetOngoingRoomsAsync()
+    public IReadOnlyList<Room> GetOngoingRooms()
     {
-        lock (_sync)
-        {
-            IReadOnlyList<Room> rooms = _rooms.Values.Where(IsOngoing).ToList();
-            return Task.FromResult(rooms);
-        }
+        IReadOnlyList<Room> rooms = _rooms.Values.Where(IsOngoing).ToList();
+        return rooms;
     }
 
-    public Task AddAsync(Room room)
+    public void Add(Room room)
     {
         ArgumentNullException.ThrowIfNull(room);
 
-        lock (_sync)
-        {
-            if (_rooms.ContainsKey(room.RoomId))
-                throw new InvalidOperationException($"Room with ID '{room.RoomId}' already exists.");
-            EnsurePlayersHaveNoOtherOngoingRoom(room);
+        if (_rooms.ContainsKey(room.RoomId))
+            throw new InvalidOperationException($"Room with ID '{room.RoomId}' already exists.");
+        EnsurePlayersHaveNoOtherOngoingRoom(room);
 
-            if (!_rooms.TryAdd(room.RoomId, room))
-                throw new InvalidOperationException($"Room with ID '{room.RoomId}' already exists.");
-        }
-
-        return Task.CompletedTask;
+        if (!_rooms.TryAdd(room.RoomId, room))
+            throw new InvalidOperationException($"Room with ID '{room.RoomId}' already exists.");
     }
 
-    public Task UpdateAsync(Room room)
+    public void Update(Room room)
     {
         ArgumentNullException.ThrowIfNull(room);
 
-        lock (_sync)
-        {
-            if (!_rooms.ContainsKey(room.RoomId))
-                throw new KeyNotFoundException($"Room with ID '{room.RoomId}' was not found.");
+        if (!_rooms.ContainsKey(room.RoomId))
+            throw new KeyNotFoundException($"Room with ID '{room.RoomId}' was not found.");
 
-            EnsurePlayersHaveNoOtherOngoingRoom(room);
-            _rooms[room.RoomId] = room;
-        }
-
-        return Task.CompletedTask;
+        EnsurePlayersHaveNoOtherOngoingRoom(room);
+        _rooms[room.RoomId] = room;
     }
 
-    public Task RemoveAsync(Guid roomId)
+    public void Remove(Guid roomId)
     {
         _rooms.TryRemove(roomId, out _);
-        return Task.CompletedTask;
     }
 
     private void EnsurePlayersHaveNoOtherOngoingRoom(Room room)

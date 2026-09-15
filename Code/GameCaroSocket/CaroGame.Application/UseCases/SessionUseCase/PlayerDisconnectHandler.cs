@@ -2,8 +2,6 @@ using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Enum;
 using System;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
@@ -30,27 +28,22 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        public async Task HandleAsync(Guid playerId, CancellationToken cancellationToken)
+        public void Handle(Guid playerId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var session = await _sessionRepository.GetByPlayerIdAsync(playerId);
+            var session = _sessionRepository.GetByPlayerId(playerId);
             if (session is null)
                 return;
 
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var player = await _playerRepository.GetByIdAsync(playerId);
+            var player = _playerRepository.GetById(playerId);
             if (player is null)
                 throw new KeyNotFoundException($"Player with ID '{playerId}' was not found.");
 
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var ongoingRooms = await _roomRepository.GetOngoingRoomsAsync();
+            var ongoingRooms = _roomRepository.GetOngoingRooms();
             var room = ongoingRooms.FirstOrDefault(r => 
                 r.IsActivePlayer(playerId));
 
-            cancellationToken.ThrowIfCancellationRequested();
 
             var now = _timeProvider.GetUtcNow().UtcDateTime;
             session.MarkDisconnected(now);
@@ -61,11 +54,11 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 room.MarkDisconnected(playerId, gracePeriodSeconds: 60, now);
             }
 
-            await _sessionRepository.UpdateAsync(session);
-            await _playerRepository.UpdateAsync(player);
+            _sessionRepository.Update(session);
+            _playerRepository.Update(player);
 
             if (room is not null)
-                await _roomRepository.UpdateAsync(room);
+                _roomRepository.Update(room);
         }
     }
 }

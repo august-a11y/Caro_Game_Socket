@@ -7,16 +7,17 @@ namespace CaroGame.Application.Interfaces.Repositories
 {
     public interface IPlayerRepository
     {
-        Task<Player?> GetByIdAsync(Guid playerId);
+        Player? GetById(Guid playerId);
 
-        Task<Player?> GetByNicknameAsync(string nickname);
+        Player? GetByNickname(string nickname);
 
-        Task<IReadOnlyList<Player>> GetOnlinePlayersAsync();
+        IReadOnlyList<Player> GetOnlinePlayers();
 
-        Task AddAsync(Player player);
+        void Add(Player player);
 
-        Task UpdateAsync(Player player);
+        void Update(Player player);
+        void Remove(Guid playerId);
 
-        Task<bool> ExistsByNicknameAsync(string nickname);
+        bool ExistsByNickname(string nickname);
     }
 }

@@ -63,5 +63,13 @@
         {
             return !IsPaused && currentTime >= TurnDeadline;
         }
+
+        public TimeSpan GetTimeRemaining(DateTime currentTime)
+        {
+            if (IsPaused)
+                return _pausedRemaining;
+
+            return currentTime < TurnDeadline ? TurnDeadline - currentTime : TimeSpan.Zero;
+        }
     }
 }

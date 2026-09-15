@@ -3,8 +3,6 @@ using CaroGame.Application.UseCases.GamePlay;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
@@ -27,12 +25,9 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        public async Task<Room> HandleAsync(Guid roomId, Guid playerId, CancellationToken cancellationToken)
+        public Room Handle(Guid roomId, Guid playerId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var room = await _roomRepository.GetByIdAsync(roomId);
-            cancellationToken.ThrowIfCancellationRequested();
+            var room = _roomRepository.GetById(roomId);
 
             if (room is null)
                 throw new KeyNotFoundException($"Room with ID '{roomId}' was not found.");
@@ -57,8 +52,7 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                     "The requested grace period has not expired.")
             };
 
-            cancellationToken.ThrowIfCancellationRequested();
-            return await _matchEnder.EndMatchAsync(room, result, cancellationToken);
+            return _matchEnder.EndMatch(room.RoomId, result, "OpponentDisconnectTimeout");
         }
 
         private static bool IsExpired(Room room, Guid playerId, DateTime now) =>

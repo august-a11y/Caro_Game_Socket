@@ -8,6 +8,7 @@ namespace CaroGame.Domain.Enum
     {
         Waiting,
         Playing,
-        Finished
+        Finished,
+        Cancelled
     }
 }
