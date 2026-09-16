@@ -7,6 +7,6 @@ namespace CaroGame.Shared.Networking.Messaging
     public interface IMessageSerializer
     {
         byte[] Serialize<T>(T message) ;
-        T Deserialize<T>(byte[] data) ;
+        T? Deserialize<T>(byte[] data) ;
     }
 }

@@ -33,20 +33,23 @@ Console.CancelKeyPress += (_, eventArgs) =>
 };
 
 logger.LogInformation("Caro game server listening on {Endpoint}", endpoint);
+var discoveryBroadcaster = serviceProvider.GetRequiredService<ServerDiscoveryBroadcaster>();
+var discoveryTask = discoveryBroadcaster.StartAsync(shutdown.Token);
+
 var listening = acceptor.StartAsync(shutdown.Token);
 var timeouts = serviceProvider.GetRequiredService<TimeoutWorker>().RunAsync(shutdown.Token);
 var cleanup = serviceProvider.GetRequiredService<CleanupWorker>().RunAsync(shutdown.Token);
 // If any service stops/fails, stop the others and observe all tasks.
 try
 {
-    await Task.WhenAny(listening, timeouts, cleanup);
+    await Task.WhenAny(listening, timeouts, cleanup, discoveryTask);
 }
 finally
 {
     shutdown.Cancel();
     try
     {
-        await Task.WhenAll(listening, timeouts, cleanup);
+        await Task.WhenAll(listening, timeouts, cleanup, discoveryTask);
     }
     catch (Exception exception)
     {

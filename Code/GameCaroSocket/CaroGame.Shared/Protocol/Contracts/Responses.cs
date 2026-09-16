@@ -12,6 +12,8 @@ public  record ChallengeDto(Guid ChallengeId, Guid FromPlayerId, Guid ToPlayerId
 public  record ChallengeResponse(Guid? RequestId, ChallengeDto Challenge, RoomSnapshot? Room = null);
 public  record RoomResponse(Guid? RequestId, RoomSnapshot Room);
 public  record RoomPlayerNotification(Guid? RequestId, Guid RoomId, Guid PlayerId, int SpectatorCount);
+public record RematchOfferNotification(Guid? RequestId, Guid RoomId);
+public record RematchResponseNotification(Guid? RequestId, Guid RoomId, Guid PlayerId, bool Accepted, int AcceptedCount);
 public  record PlayerOfflineNotification(Guid PlayerId);
 public  record MoveDto(int MoveNumber, Guid PlayerId, int Row, int Column, string Symbol, DateTime Timestamp);
 public  record MoveNotification(Guid? RequestId, Guid RoomId, MoveDto Move, Guid CurrentTurnPlayerId, DateTime TurnDeadline);
