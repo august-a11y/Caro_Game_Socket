@@ -33,7 +33,7 @@ public class ClientAcceptor : IAsyncDisposable
         _logger = logger ?? NullLogger<ClientAcceptor>.Instance;
 
         _listener = new Socket(
-            endPoint.AddressFamily,
+            AddressFamily.InterNetwork,
             SocketType.Stream,
             ProtocolType.Tcp);
 

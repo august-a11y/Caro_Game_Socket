@@ -37,6 +37,8 @@ public static class DependencyInjection
         services.TryAddSingleton<RequestExecutor>();
         services.TryAddSingleton<RoomLockService>();
         services.TryAddSingleton<LobbyLockService>();
+        services.TryAddSingleton<ServerDiscoveryBroadcaster>();
+        services.TryAddSingleton<ServerDiscoveryBroadcastOptions>();
         services.TryAddSingleton<ClientConnectionHandler>();
         services.TryAddSingleton(endPoint);
         services.TryAddSingleton<ClientAcceptor>();
