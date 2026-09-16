@@ -1,6 +1,8 @@
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Enum;
 using CaroGame.Server.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CaroGame.Server.Background;
 
@@ -8,8 +10,11 @@ public sealed class CleanupWorker(
     IRoomRepository rooms, IChallengeRepository challenges,
     ISessionRepository sessions, IPlayerRepository players,
     RoomLockService roomLocks, LobbyLockService lobbyLock,
-    TimeProvider time, CleanupOptions options)
+    TimeProvider time, CleanupOptions options,
+    ILogger<CleanupWorker>? logger = null)
 {
+    private readonly ILogger<CleanupWorker> _logger = logger ?? NullLogger<CleanupWorker>.Instance;
+
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         options.Validate();
@@ -20,6 +25,11 @@ public sealed class CleanupWorker(
                 await CleanupAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Cleanup worker stopped unexpectedly");
+            throw;
+        }
     }
 
     public async Task CleanupAsync(CancellationToken cancellationToken = default)

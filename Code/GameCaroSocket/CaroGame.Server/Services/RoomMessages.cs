@@ -11,6 +11,9 @@ public static class RoomMessages
     public static Guid[] Recipients(Room room) =>
         new[] { room.PlayerX.PlayerId, room.PlayerO.PlayerId }.Concat(room.Spectators).ToArray();
 
+    public static Guid[] Players(Room room) =>
+        [room.PlayerX.PlayerId, room.PlayerO.PlayerId];
+
     public static MoveDto Move(Move move) => new(
         move.MoveNumber, move.PlayerId, move.Position.Y, move.Position.X,
         move.Symbol.ToString(), move.Timestamp);

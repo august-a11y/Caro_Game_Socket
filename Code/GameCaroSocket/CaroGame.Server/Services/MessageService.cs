@@ -1,14 +1,17 @@
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Shared.Networking.Messaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CaroGame.Server.Services;
 
 public sealed class MessageService(
     IMessageSerializer serializer,
-    ConcurrentDictionary<Guid, ClientConnection> connections)
+    ConcurrentDictionary<Guid, ClientConnection> connections,
+    ILogger<MessageService>? logger = null)
 {
+    private readonly ILogger<MessageService> _logger = logger ?? NullLogger<MessageService>.Instance;
     public Packet CreatePacket<T>(MessageTypes type, T payload)
         => new(serializer.Serialize(payload), type);
 
@@ -38,7 +41,7 @@ public sealed class MessageService(
         return Task.WhenAll(sends);
     }
 
-    private static async Task SendToClientAsync(ClientConnection connection,
+    private async Task SendToClientAsync(ClientConnection connection,
         IReadOnlyList<Packet> packets, CancellationToken cancellationToken)
     {
         try
@@ -48,7 +51,7 @@ public sealed class MessageService(
         catch (Exception exception) when (exception is SocketException or IOException or
             ObjectDisposedException or OperationCanceledException)
         {
-            Console.WriteLine($"Broadcast to {connection.ConnectionId} failed: {exception.Message}");
+            _logger.LogWarning(exception, "Broadcast to {ConnectionId} failed", connection.ConnectionId);
             await connection.DisposeAsync();
         }
     }

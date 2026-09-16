@@ -1,4 +1,5 @@
-using CaroGame.Infrastructure.Networking.Messaging;
+
+using CaroGame.Shared.Networking.Messaging;
 
 namespace CaroGame.Server.Routing;
 

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using CaroGame.Infrastructure.Networking.Messaging;
+using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
 
 namespace CaroGame.Server.Services;

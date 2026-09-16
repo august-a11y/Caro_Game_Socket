@@ -1,4 +1,5 @@
 using CaroGame.Application.Interfaces.Repositories;
+using CaroGame.Application.Contracts;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
 
@@ -8,15 +9,19 @@ public sealed class EndMatchUseCase : IMatchEnder
 {
     private readonly IRoomRepository _roomRepository;
     private readonly IPlayerRepository _playerRepository;
+    private readonly IMatchHistoryRepository? _matchHistoryRepository;
     private readonly TimeProvider _time;
 
     public EndMatchUseCase(
         IRoomRepository roomRepository,
-        IPlayerRepository playerRepository, TimeProvider? time = null)
+        IPlayerRepository playerRepository,
+        TimeProvider? time = null,
+        IMatchHistoryRepository? matchHistoryRepository = null)
     {
         _roomRepository = roomRepository ?? throw new ArgumentNullException(nameof(roomRepository));
         _playerRepository = playerRepository ?? throw new ArgumentNullException(nameof(playerRepository));
         _time = time ?? TimeProvider.System;
+        _matchHistoryRepository = matchHistoryRepository;
     }
 
     public Room EndMatch(
@@ -52,6 +57,8 @@ public sealed class EndMatchUseCase : IMatchEnder
 
         room.EndMatch(matchResultType, _time.GetUtcNow().UtcDateTime, reason);
 
+        SaveHistory(room, playerX, playerO);
+
         ApplyResult(playerX, playerO, matchResultType);
 
         UpdatePlayer(playerX);
@@ -59,6 +66,42 @@ public sealed class EndMatchUseCase : IMatchEnder
         _roomRepository.Update(room);
 
         return room;
+    }
+
+    private void SaveHistory(Room room, Player? playerX, Player? playerO)
+    {
+        if (_matchHistoryRepository is null || room.CurrentMatch is null || room.ClosedAt is not DateTime endedAt)
+            return;
+
+        var match = room.CurrentMatch;
+        var winnerName = match.Result switch
+        {
+            MatchResultType.PlayerXWin => playerX?.Nickname,
+            MatchResultType.PlayerOWin => playerO?.Nickname,
+            _ => null
+        };
+        var moves = match.MoveHistory
+            .Select(move => new MatchMoveHistoryEntry(
+                move.MoveNumber,
+                move.PlayerId,
+                move.Position.X,
+                move.Position.Y,
+                move.Symbol.ToString(),
+                move.Timestamp))
+            .ToArray();
+
+        _matchHistoryRepository.Add(new MatchHistoryEntry(
+            room.RoomId,
+            match.PlayerXId,
+            match.PlayerOId,
+            playerX?.Nickname ?? "Unknown",
+            playerO?.Nickname ?? "Unknown",
+            winnerName,
+            match.StartedAt,
+            endedAt,
+            match.Result,
+            room.ClosingReason ?? match.Result.ToString(),
+            moves));
     }
 
     private static void ApplyResult(

@@ -5,7 +5,6 @@ using CaroGame.Application.UseCases.SessionUseCase;
 using CaroGame.Application.UseCases.Match;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Server.Background;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;

@@ -9,6 +9,7 @@ public sealed class Room
     private readonly HashSet<Guid> _spectators = new();
     private readonly HashSet<Guid> _readyPlayers = new();
     private readonly Dictionary<Guid, DisconnectInfo> _disconnected = new();
+    private readonly HashSet<Guid> _rematchAccepted = new();
     private readonly ReadOnlyDictionary<Guid, DisconnectInfo> _disconnectedView;
     private readonly int _boardSize;
     private readonly int _turnDurationSec;
@@ -21,8 +22,11 @@ public sealed class Room
     public Match? CurrentMatch { get; private set; }
     public IReadOnlyCollection<Guid> Spectators => Array.AsReadOnly(_spectators.ToArray());
     public IReadOnlyCollection<Guid> ReadyPlayers => Array.AsReadOnly(_readyPlayers.ToArray());
+    public IReadOnlyCollection<Guid> RematchAccepted => Array.AsReadOnly(_rematchAccepted.ToArray());
     public IReadOnlyDictionary<Guid, DisconnectInfo> Disconnected => _disconnectedView;
     public bool ArePlayersReady => _readyPlayers.Count == 2;
+    public bool AreBothPlayersReadyForRematch =>
+        _rematchAccepted.Contains(PlayerX.PlayerId) && _rematchAccepted.Contains(PlayerO.PlayerId);
     public DateTime CreatedAt { get; }
     public DateTime? ReadyDeadline { get; private set; }
     public DateTime? ClosedAt { get; private set; }
@@ -96,6 +100,7 @@ public sealed class Room
             _turnDurationSec,
             startTime);
         _readyPlayers.Clear();
+        _rematchAccepted.Clear();
         _disconnected.Clear();
         Status = RoomStatus.Playing;
         ReadyDeadline = null;
@@ -112,6 +117,19 @@ public sealed class Room
         ReadyDeadline = (preparedAt ?? DateTime.UtcNow).AddSeconds(_readyTimeoutSeconds);
         ClosedAt = null;
         ClosingReason = null;
+    }
+
+    public bool RespondToRematch(Guid playerId, bool accept)
+    {
+        if (Status != RoomStatus.Finished)
+            throw new InvalidOperationException("Rematch can only be requested after a finished match.");
+        if (!IsActivePlayer(playerId))
+            throw new UnauthorizedAccessException("Only room players can respond to a rematch.");
+
+        if (accept)
+            return _rematchAccepted.Add(playerId);
+
+        return _rematchAccepted.Remove(playerId);
     }
 
     public bool HasReadyExpired(DateTime now) =>

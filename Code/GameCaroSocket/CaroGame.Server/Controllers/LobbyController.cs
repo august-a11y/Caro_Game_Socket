@@ -1,7 +1,6 @@
 using CaroGame.Server.Services;
 using CaroGame.Application.UseCases.Lobby;
 using CaroGame.Application.Interfaces.Repositories;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
 

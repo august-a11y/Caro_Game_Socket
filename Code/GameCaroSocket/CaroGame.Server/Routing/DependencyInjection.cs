@@ -38,6 +38,7 @@ public static class DependencyInjection
                 { MessageTypes.ChallengeRespondRequest, matchmaking.RespondToChallengeAsync },
                 { MessageTypes.ChallengeCancelRequest, matchmaking.CancelChallengeAsync },
                 { MessageTypes.PlayerReadyRequest, match.ReadyAsync },
+                { MessageTypes.RematchResponseRequest, match.RematchAsync },
                 { MessageTypes.LeaveWaitingRoomRequest, match.LeaveWaitingRoomAsync },
                 { MessageTypes.JoinRoomAsSpectatorRequest, match.JoinAsSpectatorAsync },
                 { MessageTypes.LeaveRoomAsSpectatorRequest, match.LeaveAsSpectatorAsync },

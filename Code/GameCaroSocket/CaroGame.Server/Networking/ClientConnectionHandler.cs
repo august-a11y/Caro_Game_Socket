@@ -1,17 +1,21 @@
 using CaroGame.Server.Services;
 using System.Net.Sockets;
 using System.Text.Json;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Server.Controllers;
 using CaroGame.Server.Routing;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public class ClientConnectionHandler(
-    MessageDispatcher dispatcher,
-    SessionController sessions,
-    MessageService messages)
+        MessageDispatcher dispatcher,
+        SessionController sessions,
+        MessageService messages,
+        ILogger<ClientConnectionHandler>? logger = null)
 {
+    private readonly ILogger<ClientConnectionHandler> _logger = logger ?? NullLogger<ClientConnectionHandler>.Instance;
+
     public async Task HandleClientConnectionAsync(ClientConnection connection, CancellationToken cancellationToken = default)
     {
         try
@@ -24,6 +28,8 @@ public class ClientConnectionHandler(
                     break;
                 try
                 {
+                    _logger.LogDebug("Received {MessageType} from {ConnectionId}",
+                        packet.MessageType, connection.ConnectionId);
                     if (packet.MessageType is not MessageTypes.PlayerJoinRequest and not MessageTypes.PlayerReconnectRequest)
                         connection.RequireSession();
                     await dispatcher.DispatchAsync(connection, packet, cancellationToken);
@@ -41,6 +47,8 @@ public class ClientConnectionHandler(
                         _ => "InvalidRequest"
                     };
                     var response = new ErrorResponse(RequestId(packet), code, exception.Message);
+                    _logger.LogWarning("Rejected {MessageType} from {ConnectionId} with {ErrorCode}: {Reason}",
+                        packet.MessageType, connection.ConnectionId, code, exception.Message);
                     var type = packet.MessageType == MessageTypes.MoveRequest
                         ? MessageTypes.MoveRejected : MessageTypes.ErrorResponse;
                     await messages.SendResponseAsync(connection, type, response, cancellationToken);
@@ -52,11 +60,12 @@ public class ClientConnectionHandler(
         }
         catch (Exception exception) when (exception is SocketException or IOException or ObjectDisposedException or OperationCanceledException)
         {
-            Console.WriteLine($"Connection {connection.ConnectionId} closed: {exception.Message}");
+            _logger.LogInformation(exception, "Connection {ConnectionId} closed", connection.ConnectionId);
         }
         catch (Exception exception)
         {
-            Console.WriteLine($"Unexpected connection error: {exception}");
+            _logger.LogError(exception, "Unexpected connection error for {ConnectionId}",
+                connection.ConnectionId);
         }
         finally
         {

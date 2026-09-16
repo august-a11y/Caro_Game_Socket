@@ -7,7 +7,8 @@ using CaroGame.Domain.Enum;
 using CaroGame.Server.Controllers;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
-using CaroGame.Infrastructure.Networking.Messaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CaroGame.Server.Background;
 
@@ -23,8 +24,11 @@ public sealed class TimeoutWorker(
     ClientAcceptor connections,
     MessageService messages,
     TimeProvider time,
-    TimeoutOptions options)
+    TimeoutOptions options,
+    ILogger<TimeoutWorker>? logger = null)
 {
+    private readonly ILogger<TimeoutWorker> _logger = logger ?? NullLogger<TimeoutWorker>.Instance;
+
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         options.Validate();
@@ -125,12 +129,15 @@ public sealed class TimeoutWorker(
                     // Queue the batch under the room lock, like the gameplay controller.
                     // Await network delivery after releasing locks.
                     deliveries.Add(messages.BroadcastAsync(RoomMessages.Recipients(room), packets, cancellationToken));
+                    deliveries.Add(messages.BroadcastAsync(RoomMessages.Players(room),
+                        MessageTypes.RematchOfferNotification,
+                        new RematchOfferNotification(null, room.RoomId), cancellationToken));
                 }
                 finally { roomLocks.UnlockRoom(candidate.RoomId); }
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                Console.Error.WriteLine($"Timeout check failed for room {candidate.RoomId}: {exception}");
+                _logger.LogError(exception, "Timeout check failed for room {RoomId}", candidate.RoomId);
             }
             finally { lobbyLock.Gate.Release(); }
         }

@@ -5,7 +5,6 @@ using CaroGame.Domain.Enum;
 using CaroGame.Domain.ValueObjects;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
-using CaroGame.Infrastructure.Networking.Messaging;
 
 namespace CaroGame.Server.Controllers;
 
@@ -57,7 +56,11 @@ public class GameplayController(
                         result == MatchResultType.Draw ? "Draw" : "FiveInRow")));
 
                 // Enqueue complete frames in room order; network waits happen after releasing the room lock.
-                broadcast = messages.BroadcastAsync(RoomMessages.Recipients(room), outgoing, cancellationToken);
+                broadcast = Task.WhenAll(
+                    messages.BroadcastAsync(RoomMessages.Recipients(room), outgoing, cancellationToken),
+                    messages.BroadcastAsync(RoomMessages.Players(room),
+                        MessageTypes.RematchOfferNotification,
+                        new RematchOfferNotification(request.RequestId, room.RoomId), cancellationToken));
             }
             finally
             {
@@ -93,8 +96,12 @@ public class GameplayController(
                     ? MatchResultType.PlayerOWin : MatchResultType.PlayerXWin, "Surrender");
                 var notification = new GameOverNotification(request.RequestId,
                     RoomMessages.Snapshot(room, time.GetUtcNow().UtcDateTime), "Surrender");
-                broadcast = messages.BroadcastAsync(RoomMessages.Recipients(room),
-                    MessageTypes.GameOverNotification, notification, cancellationToken);
+                broadcast = Task.WhenAll(
+                    messages.BroadcastAsync(RoomMessages.Recipients(room),
+                        MessageTypes.GameOverNotification, notification, cancellationToken),
+                    messages.BroadcastAsync(RoomMessages.Players(room),
+                        MessageTypes.RematchOfferNotification,
+                        new RematchOfferNotification(request.RequestId, room.RoomId), cancellationToken));
             }
             finally
             {

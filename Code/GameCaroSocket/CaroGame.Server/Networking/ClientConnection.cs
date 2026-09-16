@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using CaroGame.Domain.Entities;
-using CaroGame.Infrastructure.Networking.Messaging;
+using CaroGame.Shared.Networking.Messaging;
 
 public sealed class ClientConnection : IAsyncDisposable
 {

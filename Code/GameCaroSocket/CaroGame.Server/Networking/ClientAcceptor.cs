@@ -1,7 +1,9 @@
 using System.Net;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using CaroGame.Infrastructure.Networking.Messaging;
+using CaroGame.Shared.Networking.Messaging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public class ClientAcceptor : IAsyncDisposable
 {
@@ -10,6 +12,7 @@ public class ClientAcceptor : IAsyncDisposable
     private readonly ClientConnectionHandler _connectionHandler;
     private readonly ConcurrentDictionary<Guid, ClientConnection> _connections;
     private readonly ConcurrentDictionary<Guid, Task> _handlers = new();
+    private readonly ILogger<ClientAcceptor> _logger;
     private readonly CancellationTokenSource _shutdown = new();
     private Task? _run;
 
@@ -21,11 +24,13 @@ public class ClientAcceptor : IAsyncDisposable
         IPEndPoint endPoint,
         IPacketFramer packetFramer,
         ClientConnectionHandler connectionHandler,
-        ConcurrentDictionary<Guid, ClientConnection> connections)
+        ConcurrentDictionary<Guid, ClientConnection> connections,
+        ILogger<ClientAcceptor>? logger = null)
     {
         _packetFramer = packetFramer;
         _connectionHandler = connectionHandler;
         _connections = connections;
+        _logger = logger ?? NullLogger<ClientAcceptor>.Instance;
 
         _listener = new Socket(
             endPoint.AddressFamily,
@@ -60,6 +65,8 @@ public class ClientAcceptor : IAsyncDisposable
                     _packetFramer,
                     _connections);
                 _connections.TryAdd(connection.ConnectionId, connection);
+                _logger.LogInformation("Client connected: {ConnectionId} from {RemoteEndPoint}",
+                    connection.ConnectionId, connection.RemoteEndPoint);
 
                 // Mỗi client có lifetime xử lý riêng.
                 var task = HandleConnectionAsync(connection, cancellationToken);
@@ -72,11 +79,11 @@ public class ClientAcceptor : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Server đang dừng.
+            _logger.LogInformation("Client accept loop cancelled");
         }
         catch (ObjectDisposedException)
         {
-            // Listener đã bị đóng.
+            _logger.LogInformation("Client listener disposed");
         }
     }
 
@@ -92,11 +99,13 @@ public class ClientAcceptor : IAsyncDisposable
         }
         catch (Exception exception)
         {
-            Console.WriteLine(exception);
+            _logger.LogError(exception, "Unhandled error for connection {ConnectionId}",
+                connection.ConnectionId);
         }
         finally
         {
             _connections.TryRemove(connection.ConnectionId, out _);
+            _logger.LogInformation("Client disconnected: {ConnectionId}", connection.ConnectionId);
             await connection.DisposeAsync();
         }
     }

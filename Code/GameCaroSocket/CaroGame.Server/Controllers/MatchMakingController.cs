@@ -3,7 +3,6 @@ using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Application.UseCases.MatchMaking;
 using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
 

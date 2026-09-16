@@ -2,7 +2,6 @@ using CaroGame.Server.Services;
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Application.UseCases.Match;
 using CaroGame.Domain.Enum;
-using CaroGame.Infrastructure.Networking.Messaging;
 using CaroGame.Shared.Networking.Messaging;
 using CaroGame.Shared.Protocol.Contracts;
 
@@ -54,6 +53,51 @@ public class MatchController(
             finally { roomLocks.UnlockRoom(request.RoomId); }
         }
         finally { lobbyLock.Gate.Release(); }
+        await broadcast;
+    }
+
+    public async Task RematchAsync(ClientConnection connection, Packet packet, CancellationToken cancellationToken = default)
+    {
+        var session = connection.RequireSession();
+        var request = requests.Deserialize<RematchResponseRequest>(packet);
+        Task broadcast;
+        await lobbyLock.Gate.WaitAsync(cancellationToken);
+        try
+        {
+            await roomLocks.LockRoomAsync(request.RoomId, cancellationToken);
+            try
+            {
+                var room = rooms.GetById(request.RoomId)
+                    ?? throw new KeyNotFoundException("Room was not found.");
+                if (!room.IsActivePlayer(session.PlayerId))
+                    throw new UnauthorizedAccessException("Only room players can respond to a rematch.");
+
+                room.RespondToRematch(session.PlayerId, request.Accept);
+                var outgoing = new List<Packet>
+                {
+                    messages.CreatePacket(MessageTypes.RematchResponseNotification,
+                        new RematchResponseNotification(request.RequestId, room.RoomId, session.PlayerId,
+                            request.Accept, room.RematchAccepted.Count))
+                };
+
+                if (room.AreBothPlayersReadyForRematch)
+                {
+                    var now = time.GetUtcNow().UtcDateTime;
+                    room.PrepareRematch(now);
+                    room.MarkReady(room.PlayerX.PlayerId);
+                    room.MarkReady(room.PlayerO.PlayerId);
+                    room.StartNewMatch(now);
+                    outgoing.Add(messages.CreatePacket(MessageTypes.MatchStartedNotification,
+                        new RoomResponse(request.RequestId, RoomMessages.Snapshot(room, now))));
+                }
+
+                rooms.Update(room);
+                broadcast = messages.BroadcastAsync(RoomMessages.Players(room), outgoing, cancellationToken);
+            }
+            finally { roomLocks.UnlockRoom(request.RoomId); }
+        }
+        finally { lobbyLock.Gate.Release(); }
+
         await broadcast;
     }
 

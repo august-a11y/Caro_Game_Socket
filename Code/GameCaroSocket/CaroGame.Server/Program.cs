@@ -5,6 +5,7 @@ using CaroGame.Server;
 using CaroGame.Server.Routing;
 using CaroGame.Server.Background;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var endpoint = new IPEndPoint(IPAddress.Any, 5000);
 
@@ -22,6 +23,7 @@ await using var serviceProvider = services.BuildServiceProvider(new ServiceProvi
 
 
 var acceptor = serviceProvider.GetRequiredService<ClientAcceptor>();
+var logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("CaroGame.Server");
 using var shutdown = new CancellationTokenSource();
 
 Console.CancelKeyPress += (_, eventArgs) =>
@@ -30,7 +32,7 @@ Console.CancelKeyPress += (_, eventArgs) =>
     shutdown.Cancel();
 };
 
-Console.WriteLine($"Caro game server listening on {endpoint}.");
+logger.LogInformation("Caro game server listening on {Endpoint}", endpoint);
 var listening = acceptor.StartAsync(shutdown.Token);
 var timeouts = serviceProvider.GetRequiredService<TimeoutWorker>().RunAsync(shutdown.Token);
 var cleanup = serviceProvider.GetRequiredService<CleanupWorker>().RunAsync(shutdown.Token);
@@ -42,5 +44,17 @@ try
 finally
 {
     shutdown.Cancel();
-    await Task.WhenAll(listening, timeouts, cleanup);
+    try
+    {
+        await Task.WhenAll(listening, timeouts, cleanup);
+    }
+    catch (Exception exception)
+    {
+        logger.LogCritical(exception, "A server background task failed");
+        throw;
+    }
+    finally
+    {
+        logger.LogInformation("Caro game server stopped");
+    }
 }
