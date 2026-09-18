@@ -13,6 +13,7 @@ public class MatchMakingController(
     IChallengeResponder responder,
     IChallengeCanceller canceller,
     IChallengeRepository challenges,
+    IPlayerRepository players,
     IRoomRepository rooms,
     LobbyLockService lobbyLock,
     RequestExecutor requests,
@@ -103,6 +104,8 @@ public class MatchMakingController(
 
     private ChallengeResponse Response(Challenge challenge, Guid? requestId, Room? room = null) => new(
         requestId, new ChallengeDto(challenge.ChallengeId, challenge.FromPlayerId, challenge.ToPlayerId,
-            challenge.ExpiresAt, challenge.Status.ToString()),
+            challenge.ExpiresAt, challenge.Status.ToString(),
+            players.GetById(challenge.FromPlayerId)?.Nickname,
+            players.GetById(challenge.ToPlayerId)?.Nickname),
         room is null ? null : RoomMessages.Snapshot(room, time.GetUtcNow().UtcDateTime));
 }

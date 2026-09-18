@@ -41,6 +41,11 @@ public record RoomRequest : RequestMessage
     public required Guid RoomId { get; init; }
 }
 
+public sealed record RematchResponseRequest : RoomRequest
+{
+    public required bool Accept { get; init; }
+}
+
 public sealed record SubmitMoveRequest : RoomRequest
 {
     public required int Row { get; init; }

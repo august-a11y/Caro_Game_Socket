@@ -1,62 +1,91 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using CaroGame.Server.Background;
+using CaroGame.Shared.Networking;
 
-public sealed class ServerDiscoveryBroadcaster(ServerDiscoveryBroadcastOptions options, TimeProvider time)
+public sealed class ServerDiscoveryBroadcaster(
+    ServerDiscoveryBroadcastOptions options,
+    TimeProvider time)
 {
-    private readonly int _port = 5001;
-
-    
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         options.Validate();
-        using var timer = new PeriodicTimer(options.CheckInterval, time);
-        try
-        {
-            // Await each scan so ticks never overlap within this worker.
-            while (await timer.WaitForNextTickAsync(cancellationToken))
-                await StartAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-    }
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        using var udp = new UdpClient();
 
-        udp.EnableBroadcast = true;
-
-        var message = new
+        using var udp = new UdpClient
         {
-            Type = "CaroServer",
-            ServerName = "Caro Server",
-            IpAddress = GetLocalIpAddress(),
-            TcpPort = 5000
+            EnableBroadcast = true
         };
 
-        byte[] data = Encoding.UTF8.GetBytes(
-            JsonSerializer.Serialize(message));
+        using var timer = new PeriodicTimer(
+            options.CheckInterval,
+            time);
 
         var endpoint = new IPEndPoint(
             IPAddress.Broadcast,
-            _port);
+            ServerInfo.DiscoveryPort);
 
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            await udp.SendAsync(data, endpoint);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var discoveryInfo = new ServerInfo
+                {
+                    Service = ServerInfo.ServiceName,
+                    ServerName = ServerInfo.ServiceName,
+                    Host = GetLocalIpAddress(),
+                    TcpPort = ServerInfo.TcpServerPort
+                };
 
-            await Task.Delay(
-                TimeSpan.FromSeconds(3),
-                cancellationToken);
+                byte[] data = JsonSerializer.SerializeToUtf8Bytes(
+                    discoveryInfo);
+
+                await udp.SendAsync(
+                    data,
+                    data.Length,
+                    endpoint);
+
+                // Chờ đến chu kỳ broadcast tiếp theo.
+                await timer.WaitForNextTickAsync(
+                    cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            // Server đang dừng bình thường.
+
         }
     }
 
     private static string GetLocalIpAddress()
     {
-        return Dns.GetHostEntry(Dns.GetHostName())
-            .AddressList
-            .First(ip => ip.AddressFamily == AddressFamily.InterNetwork)
-            .ToString();
+
+        var networkInterfaces = NetworkInterface
+            .GetAllNetworkInterfaces()
+            .Where(networkInterface =>
+                networkInterface.OperationalStatus ==
+                OperationalStatus.Up &&
+                networkInterface.NetworkInterfaceType !=
+                NetworkInterfaceType.Loopback);
+
+        foreach (var networkInterface in networkInterfaces)
+        {
+            var address = networkInterface
+                .GetIPProperties()
+                .UnicastAddresses
+                .Select(unicast => unicast.Address)
+                .FirstOrDefault(ip =>
+                    ip.AddressFamily == AddressFamily.InterNetwork &&
+                    !IPAddress.IsLoopback(ip));
+
+            if (address is not null)
+                return address.ToString();
+        }
+
+        throw new InvalidOperationException(
+            "Không tìm thấy địa chỉ IPv4 LAN của server.");
     }
 }
+

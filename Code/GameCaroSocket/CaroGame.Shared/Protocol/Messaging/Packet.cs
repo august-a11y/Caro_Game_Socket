@@ -1,7 +1,4 @@
-﻿using CaroGame.Shared.Networking.Messaging;
-using System.Net.WebSockets;
-
-namespace CaroGame.Shared.Networking.Messaging
+﻿namespace CaroGame.Shared.Networking.Messaging
 {
     public class Packet
     {

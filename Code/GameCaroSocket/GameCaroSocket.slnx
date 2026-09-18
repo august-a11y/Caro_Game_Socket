@@ -1,8 +1,8 @@
 <Solution>
+  <Project Path="Caro.Client.WinForms/Caro.Client.WinForms.csproj" Id="c98b5e41-2551-4722-879a-1b3593262efd" />
   <Project Path="CaroGame.Application/CaroGame.Application.csproj" />
   <Project Path="CaroGame.Domain/CaroGame.Domain.csproj" />
   <Project Path="CaroGame.Infrastructure/CaroGame.Infrastructure.csproj" />
   <Project Path="CaroGame.Server/CaroGame.Server.csproj" />
-  <Project Path="GameCaroSocket.Client/GameCaroSocket.Client.csproj" />
   <Project Path="CaroGame.Shared/CaroGame.Shared.csproj" />
 </Solution>

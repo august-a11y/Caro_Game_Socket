@@ -56,11 +56,12 @@ public class GameplayController(
                         result == MatchResultType.Draw ? "Draw" : "FiveInRow")));
 
                 // Enqueue complete frames in room order; network waits happen after releasing the room lock.
-                broadcast = Task.WhenAll(
-                    messages.BroadcastAsync(RoomMessages.Recipients(room), outgoing, cancellationToken),
-                    messages.BroadcastAsync(RoomMessages.Players(room),
+                var roomBroadcast = messages.BroadcastAsync(RoomMessages.Recipients(room), outgoing, cancellationToken);
+                broadcast = result != MatchResultType.Continue
+                    ? Task.WhenAll(roomBroadcast, messages.BroadcastAsync(RoomMessages.Players(room),
                         MessageTypes.RematchOfferNotification,
-                        new RematchOfferNotification(request.RequestId, room.RoomId), cancellationToken));
+                        new RematchOfferNotification(request.RequestId, room.RoomId), cancellationToken))
+                    : roomBroadcast;
             }
             finally
             {

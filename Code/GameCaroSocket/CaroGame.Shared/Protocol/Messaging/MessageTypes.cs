@@ -37,6 +37,9 @@
         LeaveWaitingRoomRequest = 51,
         RoomCancelledNotification = 52,
         WaitingRoomUpdatedNotification = 53,
+        RematchOfferNotification = 54,
+        RematchResponseRequest = 55,
+        RematchResponseNotification = 56,
 
         // Gameplay (60-69)
         MoveRequest = 61,                     // TCP - xử lý bởi MoveSubmitter

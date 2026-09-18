@@ -2,7 +2,7 @@
 {
     public class MessageSerializer : IMessageSerializer
     {
-        public T Deserialize<T>(byte[] data)
+        public T? Deserialize<T>(byte[] data)
         {
             var dataJson = System.Text.Encoding.UTF8.GetString(data);
             return System.Text.Json.JsonSerializer.Deserialize<T>(dataJson);
