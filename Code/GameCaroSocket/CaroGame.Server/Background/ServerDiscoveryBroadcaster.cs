@@ -55,11 +55,13 @@ public sealed class ServerDiscoveryBroadcaster(
             when (cancellationToken.IsCancellationRequested)
         {
             // Server đang dừng bình thường.
+
         }
     }
 
     private static string GetLocalIpAddress()
     {
+
         var networkInterfaces = NetworkInterface
             .GetAllNetworkInterfaces()
             .Where(networkInterface =>
@@ -86,3 +88,4 @@ public sealed class ServerDiscoveryBroadcaster(
             "Không tìm thấy địa chỉ IPv4 LAN của server.");
     }
 }
+

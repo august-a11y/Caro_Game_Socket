@@ -34,7 +34,9 @@ Console.CancelKeyPress += (_, eventArgs) =>
 
 logger.LogInformation("Caro game server listening on {Endpoint}", endpoint);
 var discoveryBroadcaster = serviceProvider.GetRequiredService<ServerDiscoveryBroadcaster>();
+
 var discoveryTask = discoveryBroadcaster.RunAsync(shutdown.Token);
+
 
 var listening = acceptor.StartAsync(shutdown.Token);
 var timeouts = serviceProvider.GetRequiredService<TimeoutWorker>().RunAsync(shutdown.Token);
