@@ -7,6 +7,7 @@ namespace CaroGame.Domain.Entities
 {
     public sealed record PlayerSlot(
     Guid PlayerId,
-    Symbol Symbol
+    Symbol Symbol,
+    string Nickname = ""
     );
 }

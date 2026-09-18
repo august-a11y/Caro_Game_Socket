@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="Features\Room\RoomView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Features\Session\ConnectionDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="FMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Features\Game\GameView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Features\Home\HomeView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Features\Invitations\InvitationsView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Features\Matches\MatchesView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Features\OnlinePlayers\OnlinePlayersView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

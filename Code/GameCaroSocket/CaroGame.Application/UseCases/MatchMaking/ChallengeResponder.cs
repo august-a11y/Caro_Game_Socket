@@ -72,8 +72,8 @@ public sealed class ChallengeResponder : IChallengeResponder
             return null;
 
         var room = new Room(
-            new PlayerSlot(challengerGuid, Symbol.X),
-            new PlayerSlot(opponentGuid, Symbol.O),
+            new PlayerSlot(challengerGuid, Symbol.X, challenger.Nickname),
+            new PlayerSlot(opponentGuid, Symbol.O, opponent.Nickname),
             createdAt: now);
 
         _roomRepository.Add(room);

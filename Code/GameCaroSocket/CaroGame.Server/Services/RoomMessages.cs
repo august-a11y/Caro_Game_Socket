@@ -37,6 +37,7 @@ public static class RoomMessages
             match?.MoveHistory.Select(Move).ToArray() ?? [],
             room.Disconnected.Values.Select(info =>
                 new DisconnectedPlayerDto(info.PlayerId, info.GracePeriodEndsAt)).ToArray(),
-            room.ReadyDeadline, room.ClosedAt, room.ClosingReason);
+            room.ReadyDeadline, room.ClosedAt, room.ClosingReason,
+            room.PlayerX.Nickname, room.PlayerO.Nickname);
     }
 }

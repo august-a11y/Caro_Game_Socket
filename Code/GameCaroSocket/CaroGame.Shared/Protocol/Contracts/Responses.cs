@@ -8,7 +8,8 @@ public  record MatchSummaryDto(Guid RoomId, string PlayerXName, string PlayerONa
 public  record MatchesResponse(Guid? RequestId, IReadOnlyList<MatchSummaryDto> Matches);
 public  record HeartbeatResponse(Guid? RequestId, DateTime ServerTime);
 public  record UdpEndpointResponse(Guid? RequestId, string Address, int Port);
-public  record ChallengeDto(Guid ChallengeId, Guid FromPlayerId, Guid ToPlayerId, DateTime ExpiresAt, string Status);
+public record ChallengeDto(Guid ChallengeId, Guid FromPlayerId, Guid ToPlayerId,
+    DateTime ExpiresAt, string Status, string? FromPlayerName = null, string? ToPlayerName = null);
 public  record ChallengeResponse(Guid? RequestId, ChallengeDto Challenge, RoomSnapshot? Room = null);
 public  record RoomResponse(Guid? RequestId, RoomSnapshot Room);
 public  record RoomPlayerNotification(Guid? RequestId, Guid RoomId, Guid PlayerId, int SpectatorCount);
@@ -40,4 +41,6 @@ public  record RoomSnapshot(
     IReadOnlyList<DisconnectedPlayerDto> DisconnectedPlayers,
     DateTime? ReadyDeadline = null,
     DateTime? ClosedAt = null,
-    string? ClosingReason = null);
+    string? ClosingReason = null,
+    string? PlayerXName = null,
+    string? PlayerOName = null);
