@@ -17,17 +17,14 @@ public sealed class SessionHeartbeatHandler : ISessionHeartbeatHandler
             ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public async Task HandleAsync(Guid playerId, CancellationToken cancellationToken)
+    public void Handle(Guid playerId)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var session = await _sessionRepository.GetByPlayerIdAsync(playerId);
+        var session = _sessionRepository.GetByPlayerId(playerId);
         if (session is null || !session.IsConnected)
             return;
 
-        cancellationToken.ThrowIfCancellationRequested();
 
         session.UpdateHeartbeat(_timeProvider.GetUtcNow().UtcDateTime);
-        await _sessionRepository.UpdateAsync(session);
+        _sessionRepository.Update(session);
     }
 }

@@ -7,15 +7,18 @@ namespace CaroGame.Application.Interfaces.Repositories
 {
     public interface IChallengeRepository
     {
-        Task<Challenge?> GetByIdAsync(Guid challengeId);
+        Challenge? GetById(Guid challengeId);
+        IReadOnlyList<Challenge> GetAll();
 
-        Task<IReadOnlyList<Challenge>> GetPendingForPlayerAsync(
+        IReadOnlyList<Challenge> GetPending();
+
+        IReadOnlyList<Challenge> GetPendingForPlayer(
             Guid playerId);
 
-        Task AddAsync(Challenge challenge);
+        void Add(Challenge challenge);
 
-        Task UpdateAsync(Challenge challenge);
+        void Update(Challenge challenge);
 
-        Task RemoveAsync(Guid challengeId);
+        void Remove(Guid challengeId);
     }
 }

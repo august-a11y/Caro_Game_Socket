@@ -9,9 +9,11 @@ public sealed class Room
     private readonly HashSet<Guid> _spectators = new();
     private readonly HashSet<Guid> _readyPlayers = new();
     private readonly Dictionary<Guid, DisconnectInfo> _disconnected = new();
+    private readonly HashSet<Guid> _rematchAccepted = new();
     private readonly ReadOnlyDictionary<Guid, DisconnectInfo> _disconnectedView;
     private readonly int _boardSize;
     private readonly int _turnDurationSec;
+    private readonly int _readyTimeoutSeconds;
 
     public Guid RoomId { get; }
     public RoomStatus Status { get; private set; }
@@ -20,16 +22,23 @@ public sealed class Room
     public Match? CurrentMatch { get; private set; }
     public IReadOnlyCollection<Guid> Spectators => Array.AsReadOnly(_spectators.ToArray());
     public IReadOnlyCollection<Guid> ReadyPlayers => Array.AsReadOnly(_readyPlayers.ToArray());
+    public IReadOnlyCollection<Guid> RematchAccepted => Array.AsReadOnly(_rematchAccepted.ToArray());
     public IReadOnlyDictionary<Guid, DisconnectInfo> Disconnected => _disconnectedView;
     public bool ArePlayersReady => _readyPlayers.Count == 2;
+    public bool AreBothPlayersReadyForRematch =>
+        _rematchAccepted.Contains(PlayerX.PlayerId) && _rematchAccepted.Contains(PlayerO.PlayerId);
     public DateTime CreatedAt { get; }
+    public DateTime? ReadyDeadline { get; private set; }
+    public DateTime? ClosedAt { get; private set; }
+    public string? ClosingReason { get; private set; }
 
     public Room(
         PlayerSlot playerX,
         PlayerSlot playerO,
         int boardSize = 15,
         int turnDurationSec = 30,
-        DateTime? createdAt = null)
+        DateTime? createdAt = null,
+        int readyTimeoutSeconds = 60)
     {
         ArgumentNullException.ThrowIfNull(playerX);
         ArgumentNullException.ThrowIfNull(playerO);
@@ -46,6 +55,8 @@ public sealed class Room
             throw new ArgumentOutOfRangeException(nameof(boardSize), "Board size must be greater than zero.");
         if (turnDurationSec <= 0)
             throw new ArgumentOutOfRangeException(nameof(turnDurationSec), "Turn duration must be greater than zero.");
+        if (readyTimeoutSeconds <= 0)
+            throw new ArgumentOutOfRangeException(nameof(readyTimeoutSeconds));
 
         RoomId = Guid.NewGuid();
         _disconnectedView = new ReadOnlyDictionary<Guid, DisconnectInfo>(_disconnected);
@@ -55,6 +66,8 @@ public sealed class Room
         _turnDurationSec = turnDurationSec;
         Status = RoomStatus.Waiting;
         CreatedAt = createdAt ?? DateTime.UtcNow;
+        _readyTimeoutSeconds = readyTimeoutSeconds;
+        ReadyDeadline = CreatedAt.AddSeconds(readyTimeoutSeconds);
     }
 
     public bool MarkReady(Guid playerId)
@@ -75,6 +88,10 @@ public sealed class Room
             throw new InvalidOperationException("Room must be waiting before a match can start.");
         if (!ArePlayersReady)
             throw new InvalidOperationException("Both players must be ready before a match can start.");
+        if (HasReadyExpired(startTime))
+            throw new InvalidOperationException("The ready deadline has expired.");
+        if (_disconnected.Count != 0)
+            throw new InvalidOperationException("Both players must be connected before starting.");
 
         CurrentMatch = new Match(
             PlayerX.PlayerId,
@@ -83,11 +100,13 @@ public sealed class Room
             _turnDurationSec,
             startTime);
         _readyPlayers.Clear();
+        _rematchAccepted.Clear();
         _disconnected.Clear();
         Status = RoomStatus.Playing;
+        ReadyDeadline = null;
     }
 
-    public void PrepareRematch()
+    public void PrepareRematch(DateTime? preparedAt = null)
     {
         if (Status != RoomStatus.Finished)
             throw new InvalidOperationException("Only a finished room can prepare a rematch.");
@@ -95,6 +114,37 @@ public sealed class Room
         _readyPlayers.Clear();
         _disconnected.Clear();
         Status = RoomStatus.Waiting;
+        ReadyDeadline = (preparedAt ?? DateTime.UtcNow).AddSeconds(_readyTimeoutSeconds);
+        ClosedAt = null;
+        ClosingReason = null;
+    }
+
+    public bool RespondToRematch(Guid playerId, bool accept)
+    {
+        if (Status != RoomStatus.Finished)
+            throw new InvalidOperationException("Rematch can only be requested after a finished match.");
+        if (!IsActivePlayer(playerId))
+            throw new UnauthorizedAccessException("Only room players can respond to a rematch.");
+
+        if (accept)
+            return _rematchAccepted.Add(playerId);
+
+        return _rematchAccepted.Remove(playerId);
+    }
+
+    public bool HasReadyExpired(DateTime now) =>
+        Status == RoomStatus.Waiting && ReadyDeadline is DateTime deadline && now >= deadline;
+
+    public void CancelWaiting(DateTime? cancelledAt = null, string reason = "PlayerLeft")
+    {
+        if (Status != RoomStatus.Waiting)
+            throw new InvalidOperationException("Only a waiting room can be cancelled.");
+        Status = RoomStatus.Cancelled;
+        ClosedAt = cancelledAt ?? DateTime.UtcNow;
+        ClosingReason = reason;
+        ReadyDeadline = null;
+        _readyPlayers.Clear();
+        _disconnected.Clear();
     }
 
     public Move ApplyMove(Guid playerId, Position position, DateTime? playedAt = null)
@@ -103,11 +153,13 @@ public sealed class Room
         return CurrentMatch!.ApplyMove(playerId, position, playedAt);
     }
 
-    public void EndMatch(MatchResultType result)
+    public void EndMatch(MatchResultType result, DateTime? endedAt = null, string? reason = null)
     {
         EnsureMatchIsPlaying();
         CurrentMatch!.EndMatch(result);
         Status = RoomStatus.Finished;
+        ClosedAt = endedAt ?? DateTime.UtcNow;
+        ClosingReason = reason ?? (result == MatchResultType.Draw ? "Draw" : "FiveInRow");
     }
 
     public bool AddSpectator(Guid playerId)
@@ -140,7 +192,7 @@ public sealed class Room
         _disconnected.Add(playerId, new DisconnectInfo(
             playerId,
             timestamp,
-            timestamp.AddSeconds(gracePeriodSeconds)));
+            Status == RoomStatus.Waiting ? ReadyDeadline!.Value : timestamp.AddSeconds(gracePeriodSeconds)));
 
         if (Status == RoomStatus.Waiting)
             _readyPlayers.Remove(playerId);

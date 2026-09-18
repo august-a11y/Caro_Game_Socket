@@ -26,8 +26,10 @@ public static class DependencyInjection
         services.AddTransient<ISpectatorJoiner, SpectatorJoiner>();
         services.AddTransient<ISpectatorLeaver, SpectatorLeaver>();
         services.AddTransient<IPlayerReadyHandler, PlayerReadyHandler>();
+        services.AddTransient<IWaitingRoomCanceller, WaitingRoomCanceller>();
         services.AddTransient<IChallengeSender, ChallengeSender>();
         services.AddTransient<IChallengeResponder, ChallengeResponder>();
+        services.AddTransient<IChallengeCanceller, ChallengeCanceller>();
         services.AddTransient<IGracePeriodExpiryHandler, GracePeriodExpiryHandler>();
         services.AddTransient<IPlayerDisconnectHandler, PlayerDisconnectHandler>();
         services.AddTransient<IPlayerJoiner, PlayerJoiner>();

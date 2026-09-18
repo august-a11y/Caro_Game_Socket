@@ -3,8 +3,6 @@ using CaroGame.Domain.Entities;
 using CaroGame.Domain.Enum;
 using System;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
@@ -31,32 +29,29 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        public async Task<Session> ReconnectPlayerAsync(Guid playerId, Guid sessionId, CancellationToken cancellationToken)
+        public Session ReconnectPlayer(Guid playerId, Guid sessionId)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var session = await _sessionRepository.GetByIdAsync(sessionId);
+            var session = _sessionRepository.GetById(sessionId);
             if (session is null)
                 throw new KeyNotFoundException($"Session with ID '{sessionId}' was not found.");
             if (session.PlayerId != playerId)
                 throw new UnauthorizedAccessException(
                     "The session does not belong to the requested player.");
 
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var player = await _playerRepository.GetByIdAsync(playerId);
+            var player = _playerRepository.GetById(playerId);
             if (player is null)
                 throw new KeyNotFoundException($"Player with ID '{playerId}' was not found.");
 
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var ongoingRooms = await _roomRepository.GetOngoingRoomsAsync();
+            var ongoingRooms = _roomRepository.GetOngoingRooms();
             var room = ongoingRooms.FirstOrDefault(r => 
                 r.IsActivePlayer(playerId));
 
-            cancellationToken.ThrowIfCancellationRequested();
 
             var now = _timeProvider.GetUtcNow().UtcDateTime;
+            if (room?.HasReadyExpired(now) == true)
+                throw new InvalidOperationException("The ready deadline has expired.");
             if (room?.Status == RoomStatus.Playing &&
                 room.Disconnected.TryGetValue(playerId, out var disconnectInfo) &&
                 now >= disconnectInfo.GracePeriodEndsAt)
@@ -75,11 +70,11 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 room.MarkReconnected(playerId, now);
             }
 
-            await _sessionRepository.UpdateAsync(session);
-            await _playerRepository.UpdateAsync(player);
+            _sessionRepository.Update(session);
+            _playerRepository.Update(player);
 
             if (room is not null)
-                await _roomRepository.UpdateAsync(room);
+                _roomRepository.Update(room);
 
             return session;
         }

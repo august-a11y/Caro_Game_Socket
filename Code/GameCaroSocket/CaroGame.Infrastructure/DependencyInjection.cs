@@ -1,5 +1,6 @@
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Infrastructure.InMemory;
+using CaroGame.Infrastructure.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -15,6 +16,8 @@ public static class DependencyInjection
         services.TryAddSingleton<ISessionRepository, InMemorySessionRepository>();
         services.TryAddSingleton<IRoomRepository, InMemoryRoomRepository>();
         services.TryAddSingleton<IChallengeRepository, InMemoryChallengeRepository>();
+        services.TryAddSingleton<IMatchHistoryRepository>(_ =>
+            new JsonMatchHistoryRepository(Path.Combine("Data", "match-history.json")));
 
         return services;
     }

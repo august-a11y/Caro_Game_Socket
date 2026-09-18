@@ -19,21 +19,17 @@ public sealed class TurnTimeoutHandler : ITurnTimeoutHandler
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public async Task HandleTurnTimeoutAsync(
+    public void HandleTurnTimeout(
         Guid roomId,
-        Guid playerId,
-        CancellationToken cancellationToken)
+        Guid playerId)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
         if (roomId == Guid.Empty)
             throw new ArgumentException("Room identifier must not be empty.", nameof(roomId));
         if (playerId == Guid.Empty)
             throw new ArgumentException("Player identifier must not be empty.", nameof(playerId));
 
-        var room = await _roomRepository.GetByIdAsync(roomId);
+        var room = _roomRepository.GetById(roomId);
 
-        cancellationToken.ThrowIfCancellationRequested();
 
         if (room?.Status != RoomStatus.Playing || room.CurrentMatch is null)
             return;
@@ -52,6 +48,6 @@ public sealed class TurnTimeoutHandler : ITurnTimeoutHandler
             ? MatchResultType.PlayerOWin
             : MatchResultType.PlayerXWin;
 
-        await _matchEnder.EndMatchAsync(room, result, cancellationToken);
+        _matchEnder.EndMatch(room.RoomId, result, "Timeout");
     }
 }

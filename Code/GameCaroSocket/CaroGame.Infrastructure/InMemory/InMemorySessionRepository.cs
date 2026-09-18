@@ -4,78 +4,59 @@ using System.Collections.Concurrent;
 
 namespace CaroGame.Infrastructure.InMemory;
 
+// Callers coordinate entity changes and multi-step operations using shared lobby/room locks.
+// ConcurrentDictionary protects individual dictionary operations only.
 public sealed class InMemorySessionRepository : ISessionRepository
 {
     private readonly ConcurrentDictionary<Guid, Session> _sessions = new();
-    private readonly object _sync = new();
+    public IReadOnlyList<Session> GetAll() => _sessions.Values.ToArray();
 
-    public Task AddAsync(Session session)
+    public void Add(Session session)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        lock (_sync)
-        {
-            if (_sessions.ContainsKey(session.SessionId))
-                throw new InvalidOperationException($"Session with ID '{session.SessionId}' already exists.");
-            EnsurePlayerHasNoOtherSession(session);
+        if (_sessions.ContainsKey(session.SessionId))
+            throw new InvalidOperationException($"Session with ID '{session.SessionId}' already exists.");
+        EnsurePlayerHasNoOtherSession(session);
 
-            if (!_sessions.TryAdd(session.SessionId, session))
-                throw new InvalidOperationException($"Session with ID '{session.SessionId}' already exists.");
-        }
-
-        return Task.CompletedTask;
+        if (!_sessions.TryAdd(session.SessionId, session))
+            throw new InvalidOperationException($"Session with ID '{session.SessionId}' already exists.");
     }
 
-    public Task<bool> ExistsAsync(Guid playerId)
+    public bool Exists(Guid playerId)
     {
-        lock (_sync)
-        {
-            return Task.FromResult(_sessions.Values.Any(session => session.PlayerId == playerId));
-        }
+        return _sessions.Values.Any(session => session.PlayerId == playerId);
     }
 
-    public Task<Session?> GetByIdAsync(Guid sessionId)
+    public Session? GetById(Guid sessionId)
     {
         _sessions.TryGetValue(sessionId, out var session);
-        return Task.FromResult(session);
+        return session;
     }
 
-    public Task<Session?> GetByPlayerIdAsync(Guid playerId)
+    public Session? GetByPlayerId(Guid playerId)
     {
-        lock (_sync)
-        {
-            return Task.FromResult(_sessions.Values.FirstOrDefault(session => session.PlayerId == playerId));
-        }
+        return _sessions.Values.FirstOrDefault(session => session.PlayerId == playerId);
     }
 
-    public Task RemoveAsync(Guid playerId)
+    public void Remove(Guid playerId)
     {
-        lock (_sync)
-        {
-            var session = _sessions.Values.FirstOrDefault(candidate => candidate.PlayerId == playerId);
-            if (session is not null)
-                _sessions.TryRemove(session.SessionId, out _);
-        }
-
-        return Task.CompletedTask;
+        var session = _sessions.Values.FirstOrDefault(candidate => candidate.PlayerId == playerId);
+        if (session is not null)
+            _sessions.TryRemove(session.SessionId, out _);
     }
 
-    public Task UpdateAsync(Session session)
+    public void Update(Session session)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        lock (_sync)
-        {
-            if (!_sessions.TryGetValue(session.SessionId, out var existing))
-                throw new KeyNotFoundException($"Session with ID '{session.SessionId}' was not found.");
-            if (existing.PlayerId != session.PlayerId)
-                throw new InvalidOperationException("Session ownership cannot be changed.");
+        if (!_sessions.TryGetValue(session.SessionId, out var existing))
+            throw new KeyNotFoundException($"Session with ID '{session.SessionId}' was not found.");
+        if (existing.PlayerId != session.PlayerId)
+            throw new InvalidOperationException("Session ownership cannot be changed.");
 
-            EnsurePlayerHasNoOtherSession(session);
-            _sessions[session.SessionId] = session;
-        }
-
-        return Task.CompletedTask;
+        EnsurePlayerHasNoOtherSession(session);
+        _sessions[session.SessionId] = session;
     }
 
     private void EnsurePlayerHasNoOtherSession(Session session)

@@ -4,4 +4,5 @@
   <Project Path="CaroGame.Infrastructure/CaroGame.Infrastructure.csproj" />
   <Project Path="CaroGame.Server/CaroGame.Server.csproj" />
   <Project Path="GameCaroSocket.Client/GameCaroSocket.Client.csproj" />
+  <Project Path="CaroGame.Shared/CaroGame.Shared.csproj" />
 </Solution>

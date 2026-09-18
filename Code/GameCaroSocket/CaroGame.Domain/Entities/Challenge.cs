@@ -18,6 +18,7 @@ namespace CaroGame.Domain.Entities
         public DateTime CreatedAt { get; }
 
         public DateTime ExpiresAt { get; }
+        public DateTime? ClosedAt { get; private set; }
 
         public Challenge(
             Guid fromPlayerId,
@@ -46,24 +47,36 @@ namespace CaroGame.Domain.Entities
             ExpiresAt = CreatedAt.Add(expiration);
         }
 
-        public void Accept()
+        public void Accept(DateTime? timestamp = null)
         {
             EnsurePending();
 
             Status = ChallengeStatus.Accepted;
+            ClosedAt = timestamp ?? DateTime.UtcNow;
         }
 
-        public void Reject()
+        public void Reject(DateTime? timestamp = null)
         {
             EnsurePending();
 
             Status = ChallengeStatus.Rejected;
+            ClosedAt = timestamp ?? DateTime.UtcNow;
         }
 
-        public void Expire()
+        public void Cancel(DateTime? timestamp = null)
+        {
+            EnsurePending();
+            Status = ChallengeStatus.Cancelled;
+            ClosedAt = timestamp ?? DateTime.UtcNow;
+        }
+
+        public void Expire(DateTime? timestamp = null)
         {
             if (Status == ChallengeStatus.Pending)
+            {
                 Status = ChallengeStatus.Expired;
+                ClosedAt = timestamp ?? DateTime.UtcNow;
+            }
         }
 
         public bool IsExpired(DateTime timestamp) => timestamp >= ExpiresAt;

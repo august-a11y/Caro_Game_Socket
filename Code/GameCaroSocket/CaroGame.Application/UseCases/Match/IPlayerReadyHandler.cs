@@ -4,8 +4,7 @@ namespace CaroGame.Application.UseCases.Match;
 
 public interface IPlayerReadyHandler
 {
-    Task<Room> HandleAsync(
+    Room Handle(
         Guid roomId,
-        Guid playerId,
-        CancellationToken cancellationToken = default);
+        Guid playerId);
 }

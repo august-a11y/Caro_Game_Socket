@@ -19,31 +19,26 @@ public sealed class OngoingMatchFinder : IOngoingMatchFinder
         _playerRepository = playerRepository;
     }
 
-    public async Task<List<RoomSummary>> FindOngoingMatchesAsync(
-        CancellationToken cancellationToken)
+    public List<RoomSummary> FindOngoingMatches(Guid? roomId = null)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var rooms = await _roomRepository.GetOngoingRoomsAsync();
-        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<CaroGame.Domain.Entities.Room> rooms = roomId is Guid id
+            ? _roomRepository.GetById(id) is { } selected ? new[] { selected } : []
+            : _roomRepository.GetOngoingRooms();
 
         var result = new List<RoomSummary>();
 
         foreach (var room in rooms.Where(room => room.Status == RoomStatus.Playing))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             var match = room.CurrentMatch ?? throw new InvalidOperationException(
                 $"Playing room '{room.RoomId}' does not have a current match.");
 
-            var playerX = await _playerRepository.GetByIdAsync(room.PlayerX.PlayerId)
+            var playerX = _playerRepository.GetById(room.PlayerX.PlayerId)
                 ?? throw new KeyNotFoundException(
                     $"Player X with ID '{room.PlayerX.PlayerId}' was not found for room '{room.RoomId}'.");
-            cancellationToken.ThrowIfCancellationRequested();
 
-            var playerO = await _playerRepository.GetByIdAsync(room.PlayerO.PlayerId)
+            var playerO = _playerRepository.GetById(room.PlayerO.PlayerId)
                 ?? throw new KeyNotFoundException(
                     $"Player O with ID '{room.PlayerO.PlayerId}' was not found for room '{room.RoomId}'.");
-            cancellationToken.ThrowIfCancellationRequested();
 
             result.Add(new RoomSummary
             {

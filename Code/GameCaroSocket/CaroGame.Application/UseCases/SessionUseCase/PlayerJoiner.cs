@@ -1,8 +1,6 @@
 using CaroGame.Application.Interfaces.Repositories;
 using CaroGame.Domain.Entities;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CaroGame.Application.UseCases.SessionUseCase
 {
@@ -25,10 +23,8 @@ namespace CaroGame.Application.UseCases.SessionUseCase
                 ?? throw new ArgumentNullException(nameof(timeProvider));
         }
 
-        public async Task<Session> JoinAsync(string nickname, CancellationToken cancellationToken)
+        public Session Join(string nickname)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             if (string.IsNullOrWhiteSpace(nickname))
             {
                 throw new ArgumentException("Nickname cannot be empty", nameof(nickname));
@@ -36,24 +32,22 @@ namespace CaroGame.Application.UseCases.SessionUseCase
 
             // Theo logic mới: Luôn tạo Player (kèm Guid mới) mỗi khi Client kết nối lần đầu
             var normalizedNickname = nickname.Trim();
-            if (await _playerRepository.ExistsByNicknameAsync(normalizedNickname))
+            if (_playerRepository.ExistsByNickname(normalizedNickname))
             {
                 throw new InvalidOperationException(
                     $"Nickname '{normalizedNickname}' is already in use.");
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
 
             var player = new Player(normalizedNickname);
-            await _playerRepository.AddAsync(player);
+            _playerRepository.Add(player);
 
-            cancellationToken.ThrowIfCancellationRequested();
 
             var newSession = new Session(
                 player.PlayerId,
                 Guid.NewGuid(),
                 _timeProvider.GetUtcNow().UtcDateTime);
-            await _sessionRepository.AddAsync(newSession);
+            _sessionRepository.Add(newSession);
 
             return newSession;
         }
