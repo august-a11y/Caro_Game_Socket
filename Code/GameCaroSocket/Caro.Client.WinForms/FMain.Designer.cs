@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace Caro.Client.WinForms
 {
@@ -121,7 +121,7 @@ namespace Caro.Client.WinForms
             lblAppName.Name = "lblAppName";
             lblAppName.Size = new Size(182, 45);
             lblAppName.TabIndex = 1;
-            lblAppName.Text = "CARO LAN";
+            lblAppName.Text = "Cờ Caro";
             // 
             // lblDescription
             // 
@@ -390,7 +390,7 @@ namespace Caro.Client.WinForms
             MinimumSize = new Size(1000, 650);
             Name = "FMain";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Caro LAN";
+            Text = "Cờ Caro";
             tblRoot.ResumeLayout(false);
             pnlHeader.ResumeLayout(false);
             pnlHeader.PerformLayout();

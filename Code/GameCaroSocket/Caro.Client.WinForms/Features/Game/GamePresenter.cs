@@ -272,9 +272,11 @@ internal sealed class GamePresenter : IDisposable
         _turnPlayerId = notification.CurrentTurnPlayerId;
         _view.DisplayMove(move.Row, move.Column, move.Symbol,
             CanMove(notification.CurrentTurnPlayerId));
+        string activeSymbol = notification.CurrentTurnPlayerId == _playerXId ? "X" : (notification.CurrentTurnPlayerId == _playerOId ? "O" : "");
         _view.DisplayGameTurn(
             CanMove(notification.CurrentTurnPlayerId) ? "Đến lượt bạn" : "Đang chờ đối thủ",
-            Math.Max(0, (int)Math.Ceiling((notification.TurnDeadline - DateTime.UtcNow).TotalSeconds)));
+            Math.Max(0, (int)Math.Ceiling((notification.TurnDeadline - DateTime.UtcNow).TotalSeconds)),
+            activeSymbol);
     }
 
     private void GameOverReceived(GameOverNotification notification)
@@ -290,7 +292,44 @@ internal sealed class GamePresenter : IDisposable
             ? GameActionMode.Spectator
             : GameActionMode.FinishedPlayer);
         _view.DisplayGameTurn("Trận đấu đã kết thúc", 0);
-        _view.DisplayGameHint($"Kết thúc trận: {UiText.ClosingReason(notification.Reason)}.");
+
+        // Hiển thị người chiến thắng rõ ràng thay vì chỉ lý do
+        string resultText = notification.Room.Result switch
+        {
+            "PlayerXWin" => $"Người chơi X ({notification.Room.PlayerXName}) thắng!",
+            "PlayerOWin" => $"Người chơi O ({notification.Room.PlayerOName}) thắng!",
+            "Draw" => "Ván đấu Hòa!",
+            _ => UiText.MatchResult(notification.Room.Result)
+        };
+        string reasonText = UiText.ClosingReason(notification.Reason);
+        _view.DisplayGameHint($"{resultText} ({reasonText})");
+
+        // Xác định Thắng / Thua / Hòa
+        bool isMyWin = false;
+        bool isMyLoss = false;
+        bool isDraw = notification.Room.Result == "Draw";
+        
+        if (!_spectator)
+        {
+            if (notification.Room.Result == "PlayerXWin")
+            {
+                isMyWin = _state.Current.PlayerId == _playerXId;
+                isMyLoss = _state.Current.PlayerId == _playerOId;
+            }
+            else if (notification.Room.Result == "PlayerOWin")
+            {
+                isMyWin = _state.Current.PlayerId == _playerOId;
+                isMyLoss = _state.Current.PlayerId == _playerXId;
+            }
+        }
+
+        string popupTitle = "KẾT THÚC TRẬN ĐẤU";
+        if (isMyWin) popupTitle = "BẠN ĐÃ THẮNG!";
+        else if (isMyLoss) popupTitle = "BẠN ĐÃ THUA!";
+        else if (isDraw) popupTitle = "VÁN ĐẤU HÒA!";
+
+        // Bật Custom Popup
+        _view.ShowGameOver(popupTitle, reasonText, isMyWin);
     }
 
     private void BoardStateReceived(RoomSnapshot room)
@@ -368,8 +407,14 @@ internal sealed class GamePresenter : IDisposable
             _ when canMove => "Đến lượt bạn",
             _ => "Đang chờ đối thủ"
         };
+        string activeSymbol = "";
+        if (room.Status == "Playing" && !room.IsPaused)
+        {
+            activeSymbol = room.CurrentTurnPlayerId == _playerXId ? "X" : (room.CurrentTurnPlayerId == _playerOId ? "O" : "");
+        }
         _view.DisplayGameTurn(turnMessage,
-            room.Status == "Playing" ? room.TimeRemainingSec : 0);
+            room.Status == "Playing" ? room.TimeRemainingSec : 0,
+            activeSymbol);
     }
 
     private bool CanMove(Guid? turnPlayerId) =>

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -162,9 +162,9 @@ partial class GameView
         // tblBody
         tblBody.ColumnCount = 2;
         tblBody.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100F));
+            new ColumnStyle(SizeType.Percent, 70F));
         tblBody.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Absolute, 286F));
+            new ColumnStyle(SizeType.Percent, 30F));
 
         tblBody.RowCount = 1;
         tblBody.RowStyles.Add(

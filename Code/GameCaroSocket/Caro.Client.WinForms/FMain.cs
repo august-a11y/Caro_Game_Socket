@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -54,6 +54,16 @@ namespace Caro.Client.WinForms
         public FMain()
         {
             InitializeComponent();
+
+            try
+            {
+                string logoPath = System.IO.Path.Combine(Application.StartupPath, "Resources", "logo.jpg");
+                if (System.IO.File.Exists(logoPath))
+                {
+                    pictureBox1.Image = Image.FromFile(logoPath);
+                }
+            }
+            catch { }
 
             RegisterPages();
             RegisterViewEvents();
@@ -607,7 +617,7 @@ namespace Caro.Client.WinForms
             });
         }
 
-        public void DisplayGameTurn(string message, int remainingSeconds)
+        public void DisplayGameTurn(string message, int remainingSeconds, string activeSymbol = "")
         {
             RunOnUi(() =>
             {
@@ -615,6 +625,7 @@ namespace Caro.Client.WinForms
                     return;
 
                 _gameView.DisplayTurn(message, remainingSeconds);
+                _gameView.DisplayActivePlayer(activeSymbol);
             });
         }
 
@@ -737,6 +748,23 @@ namespace Caro.Client.WinForms
         }
 
         public void DisplayStatus(string _) { }
+
+        public void ShowMessage(string message, string title)
+        {
+            RunOnUi(() =>
+            {
+                MessageBox.Show(this, message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            });
+        }
+
+        public void ShowGameOver(string title, string reason, bool isWin)
+        {
+            RunOnUi(() =>
+            {
+                using var dialog = new Caro.Client.WinForms.Features.Game.GameOverDialog(title, reason, isWin);
+                dialog.ShowDialog(this);
+            });
+        }
 
         // --------------------------------------------------
         // Đưa cập nhật từ module nhận dữ liệu về UI thread

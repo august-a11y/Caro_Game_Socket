@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Caro.Client.WinForms.Core;
@@ -27,6 +27,7 @@ public partial class GameView : UserControl
     public GameView()
     {
         InitializeComponent();
+        DoubleBuffered = true;
 
         CreateBoard();
 
@@ -80,6 +81,11 @@ public partial class GameView : UserControl
             BackColor = Color.FromArgb(190, 201, 217),
             CellBorderStyle = TableLayoutPanelCellBorderStyle.Single
         };
+
+        // Bật DoubleBuffering cho TableLayoutPanel để fix giật lag khi thu phóng (resize)
+        typeof(TableLayoutPanel)
+            .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.SetValue(grid, true, null);
 
         grid.SuspendLayout();
 
@@ -214,6 +220,40 @@ public partial class GameView : UserControl
             _turnTimer.Start();
         else
             _turnTimer.Stop();
+    }
+
+    public void DisplayActivePlayer(string symbol)
+    {
+        if (symbol == "X")
+        {
+            lblPlayerX.BackColor = Color.FromArgb(37, 99, 235);
+            lblPlayerX.ForeColor = Color.White;
+            if (!lblPlayerX.Text.StartsWith("▶")) lblPlayerX.Text = "▶ " + lblPlayerX.Text;
+
+            lblPlayerO.BackColor = Color.FromArgb(254, 242, 242);
+            lblPlayerO.ForeColor = Color.FromArgb(239, 83, 80);
+            lblPlayerO.Text = lblPlayerO.Text.Replace("▶ ", "");
+        }
+        else if (symbol == "O")
+        {
+            lblPlayerO.BackColor = Color.FromArgb(239, 83, 80);
+            lblPlayerO.ForeColor = Color.White;
+            if (!lblPlayerO.Text.StartsWith("▶")) lblPlayerO.Text = "▶ " + lblPlayerO.Text;
+
+            lblPlayerX.BackColor = Color.FromArgb(239, 246, 255);
+            lblPlayerX.ForeColor = Color.FromArgb(37, 99, 235);
+            lblPlayerX.Text = lblPlayerX.Text.Replace("▶ ", "");
+        }
+        else
+        {
+            lblPlayerX.BackColor = Color.FromArgb(239, 246, 255);
+            lblPlayerX.ForeColor = Color.FromArgb(37, 99, 235);
+            lblPlayerX.Text = lblPlayerX.Text.Replace("▶ ", "");
+
+            lblPlayerO.BackColor = Color.FromArgb(254, 242, 242);
+            lblPlayerO.ForeColor = Color.FromArgb(239, 83, 80);
+            lblPlayerO.Text = lblPlayerO.Text.Replace("▶ ", "");
+        }
     }
 
     public void DisplaySpectators(int count)
