@@ -33,6 +33,8 @@ Console.CancelKeyPress += (_, eventArgs) =>
 };
 
 logger.LogInformation("Caro game server listening on {Endpoint}", endpoint);
+logger.LogInformation("Server log files are written to {LogDirectory}",
+    Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "logs")));
 var discoveryBroadcaster = serviceProvider.GetRequiredService<ServerDiscoveryBroadcaster>();
 
 var discoveryTask = discoveryBroadcaster.RunAsync(shutdown.Token);

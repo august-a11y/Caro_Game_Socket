@@ -1,6 +1,7 @@
 using CaroGame.Server.Services;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Diagnostics;
 using CaroGame.Server.Controllers;
 using CaroGame.Server.Routing;
 using CaroGame.Shared.Networking.Messaging;
@@ -26,13 +27,20 @@ public class ClientConnectionHandler(
                 var packet = await connection.ReceiveAsync(cancellationToken);
                 if (packet is null)
                     break;
+                var startedAt = Stopwatch.GetTimestamp();
                 try
                 {
-                    _logger.LogDebug("Received {MessageType} from {ConnectionId}",
-                        packet.MessageType, connection.ConnectionId);
                     if (packet.MessageType is not MessageTypes.PlayerJoinRequest and not MessageTypes.PlayerReconnectRequest)
                         connection.RequireSession();
                     await dispatcher.DispatchAsync(connection, packet, cancellationToken);
+                    _logger.LogInformation(
+                        "Request handled | ConnectionId={ConnectionId} PlayerId={PlayerId} " +
+                        "MessageType={MessageType} RequestId={RequestId} ElapsedMs={ElapsedMs:F2}",
+                        connection.ConnectionId,
+                        connection.Session?.PlayerId,
+                        packet.MessageType,
+                        RequestId(packet),
+                        Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (Exception exception) when (exception is InvalidDataException or JsonException or
                     UnauthorizedAccessException or KeyNotFoundException or ArgumentException or
@@ -47,11 +55,33 @@ public class ClientConnectionHandler(
                         _ => "InvalidRequest"
                     };
                     var response = new ErrorResponse(RequestId(packet), code, exception.Message);
-                    _logger.LogWarning("Rejected {MessageType} from {ConnectionId} with {ErrorCode}: {Reason}",
-                        packet.MessageType, connection.ConnectionId, code, exception.Message);
+                    _logger.LogWarning(
+                        "Request rejected | ConnectionId={ConnectionId} PlayerId={PlayerId} " +
+                        "MessageType={MessageType} RequestId={RequestId} ErrorCode={ErrorCode} " +
+                        "Reason={Reason} ElapsedMs={ElapsedMs:F2}",
+                        connection.ConnectionId,
+                        connection.Session?.PlayerId,
+                        packet.MessageType,
+                        RequestId(packet),
+                        code,
+                        exception.Message,
+                        Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
                     var type = packet.MessageType == MessageTypes.MoveRequest
                         ? MessageTypes.MoveRejected : MessageTypes.ErrorResponse;
                     await messages.SendResponseAsync(connection, type, response, cancellationToken);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(
+                        exception,
+                        "Request failed | ConnectionId={ConnectionId} PlayerId={PlayerId} " +
+                        "MessageType={MessageType} RequestId={RequestId} ElapsedMs={ElapsedMs:F2}",
+                        connection.ConnectionId,
+                        connection.Session?.PlayerId,
+                        packet.MessageType,
+                        RequestId(packet),
+                        Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+                    throw;
                 }
             }
         }

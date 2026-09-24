@@ -2,6 +2,8 @@ using System.Net;
 using System.Collections.Concurrent;
 using CaroGame.Server.Services;
 using CaroGame.Server.Background;
+using CaroGame.Server.Networking;
+using CaroGame.Server.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -27,12 +29,15 @@ public static class DependencyInjection
                 options.SingleLine = true;
                 options.IncludeScopes = true;
             });
+            logging.AddProvider(new DailyFileLoggerProvider(
+                Path.Combine(Environment.CurrentDirectory, "logs")));
             logging.SetMinimumLevel(LogLevel.Information);
         });
 
         services.TryAddSingleton<IPacketFramer, PacketFramer>();
         services.TryAddSingleton<IMessageSerializer, MessageSerializer>();
         services.TryAddSingleton<ConcurrentDictionary<Guid, ClientConnection>>();
+        services.TryAddSingleton<NetworkMessageLogger>();
         services.TryAddSingleton<MessageService>();
         services.TryAddSingleton<RequestExecutor>();
         services.TryAddSingleton<RoomLockService>();
