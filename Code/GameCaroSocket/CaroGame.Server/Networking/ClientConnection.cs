@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using CaroGame.Domain.Entities;
+using CaroGame.Server.Networking;
 using CaroGame.Shared.Networking.Messaging;
 
 public sealed class ClientConnection : IAsyncDisposable
@@ -10,6 +11,7 @@ public sealed class ClientConnection : IAsyncDisposable
     private readonly IPacketFramer _framer;
     private readonly SemaphoreSlim _sendGate = new(1, 1);
     private readonly IReadOnlyDictionary<Guid, ClientConnection> _connections;
+    private readonly NetworkMessageLogger _messageLogger;
 
     public Guid ConnectionId { get; } = Guid.NewGuid();
 
@@ -28,18 +30,23 @@ public sealed class ClientConnection : IAsyncDisposable
     public ClientConnection(
         Socket socket,
         IPacketFramer framer,
-        IReadOnlyDictionary<Guid, ClientConnection> connections)
+        IReadOnlyDictionary<Guid, ClientConnection> connections,
+        NetworkMessageLogger? messageLogger = null)
     {
         _socket = socket;
 
         _framer = framer;
         _connections = connections;
+        _messageLogger = messageLogger ?? new NetworkMessageLogger();
     }
 
-    public Task<Packet?> ReceiveAsync(
+    public async Task<Packet?> ReceiveAsync(
         CancellationToken cancellationToken = default)
     {
-        return _framer.ReadPacketAsync(_socket, cancellationToken);
+        var packet = await _framer.ReadPacketAsync(_socket, cancellationToken);
+        if (packet is not null)
+            _messageLogger.LogReceived(this, packet);
+        return packet;
     }
 
     public Task SendAsync(
@@ -56,7 +63,18 @@ public sealed class ClientConnection : IAsyncDisposable
         try
         {
             foreach (var packet in packets)
-                await _framer.WriteAsync(_socket, packet, timeout.Token);
+            {
+                try
+                {
+                    await _framer.WriteAsync(_socket, packet, timeout.Token);
+                    _messageLogger.LogSent(this, packet);
+                }
+                catch (Exception exception)
+                {
+                    _messageLogger.LogSendFailed(this, packet, exception);
+                    throw;
+                }
+            }
         }
         catch
         {

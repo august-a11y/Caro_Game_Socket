@@ -1,6 +1,7 @@
 using System.Net;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using CaroGame.Server.Networking;
 using CaroGame.Shared.Networking.Messaging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -10,6 +11,7 @@ public class ClientAcceptor : IAsyncDisposable
     private readonly Socket _listener;
     private readonly IPacketFramer _packetFramer;
     private readonly ClientConnectionHandler _connectionHandler;
+    private readonly NetworkMessageLogger _messageLogger;
     private readonly ConcurrentDictionary<Guid, ClientConnection> _connections;
     private readonly ConcurrentDictionary<Guid, Task> _handlers = new();
     private readonly ILogger<ClientAcceptor> _logger;
@@ -25,11 +27,13 @@ public class ClientAcceptor : IAsyncDisposable
         IPacketFramer packetFramer,
         ClientConnectionHandler connectionHandler,
         ConcurrentDictionary<Guid, ClientConnection> connections,
+        NetworkMessageLogger messageLogger,
         ILogger<ClientAcceptor>? logger = null)
     {
         _packetFramer = packetFramer;
         _connectionHandler = connectionHandler;
         _connections = connections;
+        _messageLogger = messageLogger;
         _logger = logger ?? NullLogger<ClientAcceptor>.Instance;
 
         _listener = new Socket(
@@ -63,7 +67,8 @@ public class ClientAcceptor : IAsyncDisposable
                 var connection = new ClientConnection(
                     clientSocket,
                     _packetFramer,
-                    _connections);
+                    _connections,
+                    _messageLogger);
                 _connections.TryAdd(connection.ConnectionId, connection);
                 _logger.LogInformation("Client connected: {ConnectionId} from {RemoteEndPoint}",
                     connection.ConnectionId, connection.RemoteEndPoint);
