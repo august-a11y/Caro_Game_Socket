@@ -55,8 +55,13 @@ Solution `GameCaroSocket.slnx` được phân chia rõ ràng theo nguyên tắc 
 *   **`GameCaroSocket.Client`**: Ứng dụng phía người dùng. Đảm nhận việc hiển thị giao diện UI, gửi yêu cầu lên Server và cập nhật trạng thái bàn cờ theo thời gian thực.
 
 ---
-## ⚙️ Yêu cầu hệ thống & Hướng dẫn cài đặt
 
-> 🚧 **Đang cập nhật...**
-> 
-> Dự án hiện vẫn đang trong giai đoạn phát triển và hoàn thiện. Các thông tin chi tiết về yêu cầu môi trường, cấu hình hệ thống cũng như hướng dẫn từng bước để khởi chạy Server và Client sẽ được nhóm cập nhật đầy đủ tại đây ngay sau khi dự án hoàn thành.
+⚙️ Yêu cầu hệ thống & Hướng dẫn cài đặt
+Yêu cầu
+- Máy chủ và máy chơi sử dụng Windows 64-bit tương thích với .NET 10.
+- Các máy ở cùng mạng LAN để Client tự tìm thấy Server.
+- Gói ZIP được xuất bản với tùy chọn --self-contained true, nên người nhận không cần cài .NET.
+Cài đặt và chạy
+1. Trên máy chủ, giải nén gói caro-server-win-x64.zip trong folder release vào một thư mục có quyền ghi, chẳng hạn Documents\CaroServer. Chạy Caro.Server.WinForms.exe, sau đó nhấn Chạy server. Cửa sổ sẽ hiển thị log hoạt động.
+2. Trên mỗi máy chơi, giải nén gói caro-clinet-win-x64.zip rồi chạy Caro.Client.WinForms.exe.
+3. Trong Client, chọn Server xuất hiện trong danh sách, nhập tên người chơi và nhấn Kết nối. Không cần nhập IP.
