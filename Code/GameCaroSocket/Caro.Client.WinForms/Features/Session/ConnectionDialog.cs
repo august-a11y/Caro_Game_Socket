@@ -72,7 +72,7 @@ internal sealed class ConnectionDialog : Form
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
-        var instruction = new Label { Text = "Chọn máy chủ, nhập tên người chơi, sau đó nhấn Kết nối.", AutoSize = true };
+        var instruction = new Label { Text = "Chọn máy chủ trong LAN, nhập tên người chơi, sau đó nhấn Kết nối.", AutoSize = true };
         layout.Controls.Add(instruction, 0, 0);
         layout.SetColumnSpan(instruction, 2);
         layout.Controls.Add(_list, 0, 1);
@@ -87,16 +87,16 @@ internal sealed class ConnectionDialog : Form
         _connect.Click += async (_, _) =>
         {
             RemoveExpiredServers();
-            if (_attempting || !_connect.Enabled || CurrentAnnouncement is not { } announcement) return;
+            if (_attempting || !_connect.Enabled || CurrentServer is not { } server) return;
             _attempting = true;
             _connect.Enabled = false;
             _status.ForeColor = Color.FromArgb(100, 116, 139);
             _status.Text = "Đang kết nối đến máy chủ...";
             try
             {
-                if (ConnectionRequested is not null && await ConnectionRequested(announcement.Server, Nickname, Reconnect))
+                if (ConnectionRequested is not null && await ConnectionRequested(server, Nickname, Reconnect))
                 {
-                    SelectedServer = announcement.Server;
+                    SelectedServer = server;
                     DialogResult = DialogResult.OK;
                 }
             }
@@ -122,6 +122,8 @@ internal sealed class ConnectionDialog : Form
 
     private Announcement? CurrentAnnouncement =>
         _list.SelectedItems.Count == 1 ? _list.SelectedItems[0].Tag as Announcement : null;
+
+    private ServerInfo? CurrentServer => _discoveryFailed ? null : CurrentAnnouncement?.Server;
 
     protected override void OnShown(EventArgs e)
     {
@@ -154,14 +156,14 @@ internal sealed class ConnectionDialog : Form
     private void SelectionChanged()
     {
         _nickname.Clear();
-        _nickname.Enabled = CurrentAnnouncement is not null && !_discoveryFailed;
+        _nickname.Enabled = CurrentServer is not null;
         UpdateReconnectAvailability();
         UpdateConnectButton();
     }
 
     private void UpdateReconnectAvailability()
     {
-        var server = CurrentAnnouncement?.Server;
+        var server = CurrentServer;
         bool wasAvailable = _reconnect.Enabled;
         _reconnect.Enabled = _canReconnect && server is not null &&
             string.Equals(server.Host, _previousHost, StringComparison.OrdinalIgnoreCase) && server.TcpPort == _previousPort &&
@@ -170,8 +172,8 @@ internal sealed class ConnectionDialog : Form
         else if (!wasAvailable) _reconnect.Checked = true;
     }
 
-    private void UpdateConnectButton() => _connect.Enabled = !_discoveryFailed &&
-        CurrentAnnouncement is not null && !string.IsNullOrWhiteSpace(Nickname);
+    private void UpdateConnectButton() => _connect.Enabled =
+        CurrentServer is not null && !string.IsNullOrWhiteSpace(Nickname);
 
     private void RemoveExpiredServers()
     {
@@ -201,7 +203,7 @@ internal sealed class ConnectionDialog : Form
     private void ShowDiscoveryError(Exception error)
     {
         _discoveryFailed = true;
-        _nickname.Enabled = false;
+        _nickname.Enabled = CurrentServer is not null;
         _status.Text =
             $"Không thể tìm máy chủ trong mạng LAN: {error.Message} Đóng cửa sổ và thử lại.";
         UpdateConnectButton();

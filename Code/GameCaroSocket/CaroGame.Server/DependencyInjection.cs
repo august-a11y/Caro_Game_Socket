@@ -15,7 +15,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCaroGameServer(
         this IServiceCollection services,
-        IPEndPoint endPoint)
+        IPEndPoint endPoint,
+        Action<ILoggingBuilder>? configureLogging = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(endPoint);
@@ -32,6 +33,7 @@ public static class DependencyInjection
             logging.AddProvider(new DailyFileLoggerProvider(
                 Path.Combine(Environment.CurrentDirectory, "logs")));
             logging.SetMinimumLevel(LogLevel.Information);
+            configureLogging?.Invoke(logging);
         });
 
         services.TryAddSingleton<IPacketFramer, PacketFramer>();
